@@ -312,10 +312,7 @@ exports.loginStudent = async (req, res) => {
 
     const student = await Student.findOne({
       passwordTemporaly: passwordTemporaly,
-    }).populate({
-      path: "person",
-      select: "-id CI",
-    });
+    })
     if (!student && student.passwordTemporaly !== passwordTemporaly) {
       return res.status(400).send({ message: "Credenciales incorrectas" });
     }
