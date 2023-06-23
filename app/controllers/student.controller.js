@@ -310,7 +310,7 @@ exports.loginStudent = async (req, res) => {
   try {
     const { passwordTemporaly } = req.body;
 
-    const student = await Student.findOne(passwordTemporaly)
+    const student = await Student.findOne({ passwordTemporaly: passwordTemporaly })
     .populate({
       path:"person",
       select:"-id CI"
