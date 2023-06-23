@@ -306,16 +306,15 @@ exports.generatePassStudent = async (req, res) => {
 
 //Login student
 exports.loginStudent = async (req, res) => {
-  console.log(req.body)
+  console.log(req.body);
   try {
-    const { email, passwordTemporaly } = req.body;
+    const { passwordTemporaly } = req.body;
 
-    const person = await Person.findOne({ email });
-    if (!person) {
-      return res.status(400).send({ message: "Estudiante no encontrado" });
-    }
-
-    const student = await Student.findOne({ person: person._id });
+    const student = await Student.findOne(passwordTemporaly)
+    .populate({
+      path:"person",
+      select:"-id CI"
+    })
     if (!student && student.passwordTemporaly !== passwordTemporaly) {
       return res.status(400).send({ message: "Credenciales incorrectas" });
     }
@@ -323,9 +322,10 @@ exports.loginStudent = async (req, res) => {
     if (student.passwordTemporalyExpiration < Date.now()) {
       return res.status(400).send({ message: "Codigo expirado" });
     }
-    res.status(200).send({ message: "ok", data: cedula });
+    console.log(person.CI)
+    res.status(200).send({ message: "ok", data: person.CI });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).send({ error: "Error al iniciar sesión" });
   }
 };
