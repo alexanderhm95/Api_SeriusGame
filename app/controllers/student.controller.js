@@ -258,7 +258,7 @@ exports.generatePassStudent = async (req, res) => {
   try {
     const { CI } = req.body;
 
-    const studentSearch = await User.aggregate([
+    const studentSearch = await Student.aggregate([
       {
         $lookup: {
           from: "people",
@@ -306,6 +306,7 @@ exports.generatePassStudent = async (req, res) => {
 
 //Login student
 exports.loginStudent = async (req, res) => {
+  console.log(req.body)
   try {
     const { email, passwordTemporaly } = req.body;
 
@@ -324,6 +325,7 @@ exports.loginStudent = async (req, res) => {
     }
     res.status(200).send({ message: "ok", data: cedula });
   } catch (error) {
+    console.log(error)
     res.status(400).send({ error: "Error al iniciar sesión" });
   }
 };
