@@ -323,8 +323,8 @@ exports.loginStudent = async (req, res) => {
     if (student.passwordTemporalyExpiration < Date.now()) {
       return res.status(400).send({ message: "Codigo expirado" });
     }
-    console.log(student.person.CI);
-    res.status(200).send({ message: "ok", data: student.person.CI });
+    console.log(student)
+    res.status(200).send({ message: "ok" });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: "Error al iniciar sesión" });
