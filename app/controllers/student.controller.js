@@ -330,7 +330,8 @@ exports.loginStudent = async (req, res) => {
       return res.status(400).send({ message: "Codigo expirado" });
     }
     console.log(student);
-    res.status(200).send({ message: "ok", data: student.person.CI });
+    let cedula = student.person.CI;
+    res.status(200).send({ message: "ok", data: cedula });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: "Error al iniciar sesión" });
