@@ -300,7 +300,7 @@ exports.generatePassStudent = async (req, res) => {
     res.status(200).send({ message: "ok", data: student.passwordTemporaly });
   } catch (error) {
     console.log(error);
-    res.status(400).send(error + "Error al iniciar sesión");
+    res.status(400).send(error + "Error al iniciar sesión.");
   }
 };
 
