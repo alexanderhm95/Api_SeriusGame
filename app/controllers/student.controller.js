@@ -310,11 +310,12 @@ exports.loginStudent = async (req, res) => {
   try {
     const { passwordTemporaly } = req.body;
 
-    const student = await Student.findOne({ passwordTemporaly: passwordTemporaly })
-    .populate({
-      path:"person",
-      select:"-id CI"
-    })
+    const student = await Student.findOne({
+      passwordTemporaly: passwordTemporaly,
+    }).populate({
+      path: "person",
+      select: "-id CI",
+    });
     if (!student && student.passwordTemporaly !== passwordTemporaly) {
       return res.status(400).send({ message: "Credenciales incorrectas" });
     }
@@ -322,8 +323,8 @@ exports.loginStudent = async (req, res) => {
     if (student.passwordTemporalyExpiration < Date.now()) {
       return res.status(400).send({ message: "Codigo expirado" });
     }
-    console.log(person.CI)
-    res.status(200).send({ message: "ok", data: person.CI });
+    console.log(student.person.CI);
+    res.status(200).send({ message: "ok", data: student.person.CI });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: "Error al iniciar sesión" });
