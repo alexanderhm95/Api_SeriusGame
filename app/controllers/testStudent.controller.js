@@ -8,38 +8,109 @@ const Case = require("../models/caso.model.js");
 
 exports.findAll = async (req, res) => {
   try {
-    const listTest = await TestStudent.find()
-      .populate({
-        path: "dece",
-        populate: {
-          path: "person",
-          select: "CI name lastName",
+    const tests = await TestStudent.aggregate([
+      {
+        $lookup: {
+          from: "casos",
+          localField: "caso",
+          foreignField: "_id",
+          as: "casoData",
         },
-      })
-      .populate({
-        path: "student",
-        populate: {
-          path: "person",
-          select: "CI name lastName",
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "casoData.student",
+          foreignField: "_id",
+          as: "studentData",
         },
-      })
-      .select("_id dece student score status createdAt")
-      .lean();
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "studentData.person",
+          foreignField: "_id",
+          as: "personStudentData",
+        },
+      },
+      {
+        $lookup: {
+          from: "deces",
+          localField: "casoData.dece",
+          foreignField: "_id",
+          as: "deceData",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "deceData.user",
+          foreignField: "_id",
+          as: "userDeceData",
+        },
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "userDeceData.person",
+          foreignField: "_id",
+          as: "personDeceData",
+        },
+      },
+      {
+        $project: {
+          _id: 1, // Incluir el campo _id,
+          scoreMax: 1, // Incluir el campo scoreMax
+          score: 1, // Incluir el campo score
+          diagnostic: 1, // Incluir el campo diagnostic
+          status: 1, // Incluir el campo status
+          createdAt: 1, //Incluir fechas de creacion
+          "studentData.grade": 1, // Incluir el campo "student" de "casoData"
+          "studentData.parallel": 1, // Incluir el campo "student" de "casoData"
+          "personStudentData.CI": 1, // Incluir el campo "name" de "personStudentData"
+          "personStudentData.name": 1, // Incluir el campo "name" de "personStudentData"
+          "personStudentData.lastName": 1, // Incluir el campo "name" de "personStudentData"
+          "personStudentData.age": 1, // Incluir el campo "name" de "personStudentData"
+          "personStudentData.email": 1, // Incluir el campo "name" de "personStudentData"
+          "personDeceData.CI": 1, // Incluir el campo "name" de "personStudentData"
+          "personDeceData.name": 1, // Incluir el campo "name" de "personStudentData"
+          "personDeceData.lastName": 1, // Incluir el campo "name" de "personStudentData"
+          "personDeceData.email": 1, // Incluir el campo "name" de "personStudentData"
+        },
+      },
+    ]);
 
-      const listaTest = listTest.map((test) => ({
-        _id: test._id,
-        ciDece: test.dece?.person?.CI || "No asignado",
-        nameDece: test.dece?.person?.name || "No asignado",
-        lastNameDece: test.dece?.person?.lastName || "No asignado",
-        ciStudent: test.student?.person?.CI || "No asignado",
-        nameStudent: test.student?.person?.name || "No asignado",
-        lastNameStudent: test.student?.person?.lastName || "No asignado",
-        score: test.score,
-        status: test.status,
-        createdAt: test.createdAt,
-      }));
-  
-      res.status(200).send(listaTest);
+    const listTests = await Promise.all(
+      tests.map(async (test) => {
+        const student = test.studentData[0];
+        const personStudent = test.personStudentData[0];
+        const personDece = test.personDeceData[0];
+
+        return {
+          id: test._id,
+          scoreMax: test.scoreMax,
+          score: test.score,
+          diagnostic: test.diagnostic,
+          statusTestStudent: test.status,
+          dateAplication: test.createdAt,
+          ciStudent: personStudent.CI,
+          nameStudent: personStudent.name,
+          lastNameStudent: personStudent.lastName,
+          emailStudent: personStudent.email,
+          ageStudent: personStudent.age,
+          gradeStudent: student.grade,
+          parallelStudent: student.parallel,
+          ciDece: personDece.CI,
+          nameDece: personDece.name,
+          lastNameDece: personDece.lastName,
+          emailDece: personDece.email,
+        };
+      })
+    );
+
+    res
+      .status(200)
+      .send({ message: "Datos obtenidos correctamente", data: listTests });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error + "Error finding testStudent" });

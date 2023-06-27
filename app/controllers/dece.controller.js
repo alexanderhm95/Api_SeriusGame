@@ -8,9 +8,9 @@ const Institution = require("../models/institution.model.js");
 // Create and Save a new dece
 exports.createDece = async (req, res) => {
   console.log(req.body);
+
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const {
       CI,
@@ -76,6 +76,8 @@ exports.createDece = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.log(error);
+
+    
     res.status(400).send({ error: "Error al crear el DECE" });
   }
 };
