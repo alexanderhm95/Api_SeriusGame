@@ -12,7 +12,7 @@ const TestQuestion = require("../models/testQuestion.model.js");
 const TestImages = require("../models/testImages.model.js");
 const Institution = require("../models/institution.model.js");
 
-// Create and Save a new caso
+// Create and Save a new caso    Listo el create 
 exports.create = async (req, res) => {
   console.log(req.body);
 
@@ -48,6 +48,8 @@ exports.create = async (req, res) => {
       session.endSession();
       return res.status(400).send({ error: "Institución no registrada" });
     }
+
+
     let student;
     let personStudent = await Student.findOne({ CI: ciStudent }).session(
       session
@@ -57,7 +59,7 @@ exports.create = async (req, res) => {
         session
       );
     }
-    console.log(student ? "Student encontrado" : "Student no encontrado");
+   
 
     if (!student) {
       const person = new Person({
@@ -83,25 +85,20 @@ exports.create = async (req, res) => {
 
     let teacher;
     let personTeac = await Person.findOne({ CI: ciTeacher }).session(session);
-    console.log(personTeac)
+  
     if (personTeac) {
-      console.log("Encontro persona")
-      let userTeac = await User.findOne({ person: personTeac }).session(session)
+      let userTeac = await User.findOne({ person: personTeac }).session(
+        session
+      );
       if (userTeac) {
-
-      console.log("Encontro user")
-           teacher = await Teacher.findOne({ user: userTeac}).session(session);
-        if(teacher){
-          console.log("teacher encontrado")
-        }
-
+        teacher = await Teacher.findOne({ user: userTeac }).session(session);
+  
       }
     }
 
-    console.log(teacher ? "Teacher encontrado" : "Teacher no encontrado");
+   
 
     if (!teacher) {
-      console.log("emtro aui", teacher);
       const personTeacher = new Person({
         name: nameTeacher,
         lastName: lastNameTeacher,
@@ -136,7 +133,6 @@ exports.create = async (req, res) => {
       dateStart: Date.now(),
     }).save({ session });
 
-    console.log(caso);
     await session.commitTransaction();
     session.endSession();
 
