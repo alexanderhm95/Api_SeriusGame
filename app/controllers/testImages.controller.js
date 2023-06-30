@@ -4,31 +4,42 @@ const fs = require('fs');
 
 // Create and Save a new TestImages
 exports.create = async (req, res) => {
-    let srcImageTmp = "";
+    let srcImageTmp = ""; // Inicializar la variable srcImageTmp
+    console.log(req.body)
+
     try {
-        const { data } = req.body
-        const testImages = new TestImages(JSON.parse(data));
-        srcImageTmp = testImages.link;
-        console.log(testImages)
-        const test = await testImages.save();
+        const { data } = req.body;
+        const testImages = JSON.parse(data);
+        const test = new TestImages({
+            name: testImages.name,
+            link: testImages.urlImage,
+            value: testImages.value,
+            section: testImages.section,
+        })
+        srcImageTmp = testImages.urlImage;
+         await test.save();
         res.status(201).send({ message: "ok", test });
     } catch (error) {
         // si ocurre un error, se elimina la imagen subida
-        const deleteFile = resolve(__dirname, '..', '..', srcImageTmp);
-        console.log(deleteFile)
-        fs.access(deleteFile, fs.constants.F_OK, (err) => {
-            if (!err) {
-                fs.unlink(deleteFile, (err) => {
-                    console.log('file was deleted');
-                });
-            } else {
-                console.log('file does not exist');
-            }
-        });
-        console.log(error)
+        if (srcImageTmp) { // Verificar que srcImageTmp tenga un valor antes de usarlo
+            const deleteFile = resolve(__dirname, '..', '..', srcImageTmp);
+            console.log(deleteFile);
+            fs.access(deleteFile, fs.constants.F_OK, (err) => {
+                if (!err) {
+                    fs.unlink(deleteFile, (err) => {
+                        console.log('file was deleted');
+                    });
+                } else {
+                    console.log('file does not exist');
+                }
+            });
+        }
+
+        console.log(error);
         res.status(400).send({ error: error + "Error creating TestImages" });
     }
-}
+};
+
 
 
 const options = {
