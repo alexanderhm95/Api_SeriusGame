@@ -7,7 +7,7 @@ const Institution = require("../models/institution.model.js");
 
 exports.findAll = async (req, res) => {
   try {
-    const tests = await TestStudent.aggregate([
+    const tests = await TestTeacher.aggregate([
       {
         $lookup: {
           from: "casos",
@@ -89,7 +89,7 @@ exports.findAll = async (req, res) => {
           scoreMax: test.scoreMax,
           score: test.score,
           diagnostic: test.diagnostic,
-          statusTestStudent: test.status,
+          statusTestTeacher: test.status,
           ciStudent: personStudent.CI,
           nameStudent: personStudent.name,
           lastNameStudent: personStudent.lastName,

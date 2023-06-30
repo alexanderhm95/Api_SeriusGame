@@ -23,7 +23,7 @@ exports.findAll = async (req, res) => {
     try {
         const testQuestions = await TestQuestion.find();
 
-        res.status(200).send({ message: "ok", data: testQuestions });
+        res.status(200).send({ message: "Preguntas cargadas con exito", data: testQuestions });
     } catch (error) {
         res.status(400).send({ error: error + "Error getting TestQuestion" });
     }

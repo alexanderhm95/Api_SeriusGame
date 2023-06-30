@@ -12,7 +12,7 @@ const TestQuestion = require("../models/testQuestion.model.js");
 const TestImages = require("../models/testImages.model.js");
 const Institution = require("../models/institution.model.js");
 
-// Create and Save a new caso    Listo el create 
+// Create and Save a new caso    Listo el create
 exports.create = async (req, res) => {
   console.log(req.body);
 
@@ -49,7 +49,6 @@ exports.create = async (req, res) => {
       return res.status(400).send({ error: "Institución no registrada" });
     }
 
-
     let student;
     let personStudent = await Student.findOne({ CI: ciStudent }).session(
       session
@@ -59,7 +58,6 @@ exports.create = async (req, res) => {
         session
       );
     }
-   
 
     if (!student) {
       const person = new Person({
@@ -85,18 +83,15 @@ exports.create = async (req, res) => {
 
     let teacher;
     let personTeac = await Person.findOne({ CI: ciTeacher }).session(session);
-  
+
     if (personTeac) {
       let userTeac = await User.findOne({ person: personTeac }).session(
         session
       );
       if (userTeac) {
         teacher = await Teacher.findOne({ user: userTeac }).session(session);
-  
       }
     }
-
-   
 
     if (!teacher) {
       const personTeacher = new Person({
@@ -210,7 +205,6 @@ exports.testStudent = async (req, res) => {
       score: score,
       diagnostic: diagnostic,
       answers,
-      status: true,
     }).save();
 
     const response = {
@@ -247,9 +241,37 @@ exports.testTeacher = async (req, res) => {
           as: "personaData",
         },
       },
+
+      {
+        $lookup: {
+          from: "teachers",
+          localField: "teacher",
+          foreignField: "_id",
+          as: "teacherData",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "teacherData.user",
+          foreignField: "_id",
+          as: "userTeacherData",
+        },
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "userTeacherData.person",
+          foreignField: "_id",
+          as: "personaTeacherData",
+        },
+      },
       {
         $match: {
-          "personaData.CI": ciStudent,
+          $and: [
+            { "personaData.CI": ciStudent },
+            { "personaTeacherData.CI": ciTeacher },
+          ],
         },
       },
     ]);
@@ -289,7 +311,6 @@ exports.testTeacher = async (req, res) => {
       scoreMax,
       score: score,
       answers,
-      status: false,
       diagnostic: diagnostic,
     }).save();
 
@@ -410,40 +431,95 @@ exports.findAll = async (req, res) => {
 
 //Extrae todos los estudiantes que estan vinculados al docente por id
 exports.getAllStudentsXTeacher = async (req, res) => {
-  console.log("llego el id", req.params.id);
   try {
     const { id } = req.params;
-    let listCaso = [];
-    const docente = await Teacher.findOne({ user: id });
-    const caso = await Caso.find({ teacher: docente._id });
-    for (let i = 0; i < caso.length; i++) {
-      const caso = caso[i];
-      const student = await Student.findById(caso.student);
-      const person = await Person.findById(student.person);
-      console.log("persona ", person.CI, " student:", student._id);
-      const teacher = await Teacher.findById(caso.teacher);
-      const personTeacher = await Person.findById(teacher.person);
-      console.log("persona ", personTeacher.CI, " teacher:", teacher._id);
-      const institution = await Institution.findById(caso.institution);
 
-      listCaso.push({
-        id: caso ? caso._id : "no asignado",
-        idStudent: student ? student._id : "no asignado",
-        name: person ? person.name : "no asignado",
-        lastName: person ? person.lastName : "no asignado",
-        CI: person ? person.CI : "no asignado",
-        nameT: personTeacher ? personTeacher.name : "no asignado",
-        lastNameT: personTeacher ? personTeacher.lastName : "no asignado",
-        CIteacher: personTeacher ? personTeacher.CI : "no asignado",
-        institution: institution ? institution.nameInstitution : "no asignado",
-        dateStart: caso.dateStart ? caso.dateStart : "no asignado",
-        statusTestTeacher: caso ? caso.statusTestTeacher : "no asignado",
-      });
+    const userTeacher = await User.findById(id).select("_id").lean().exec();
+
+    if (!userTeacher) {
+      return res.status(404).send({ message: "Docente no encontrado" });
     }
-    res.send(listCaso);
+
+    const teacher = await Teacher.findOne({ user: userTeacher._id })
+      .select("_id")
+      .populate({
+        path: "user",
+        populate: {
+          path: "person",
+          select: "-_id CI name lastName phone email ",
+        },
+      })
+      .lean()
+      .exec();
+
+    if (!teacher) {
+      return res.status(404).send({ message: "Docente no encontrado" });
+    }
+
+    const casoIds = await Caso.find({ teacher: teacher._id })
+      .select("_id")
+      .lean()
+      .exec();
+
+    if (casoIds.length === 0) {
+      return res.status(404).send({ message: "No hay casos asignados" });
+    }
+
+    const casoPromises = casoIds.map((caso) => {
+      return Caso.findById(caso._id)
+        .populate("student", "_id")
+        .populate("teacher", "_id")
+        .lean()
+        .exec();
+    });
+
+    const casos = await Promise.all(casoPromises);
+
+    const studentIds = casos.map((caso) => caso.student);
+
+    const students = await Student.find({ _id: { $in: studentIds } })
+      .select("_id")
+      .populate({
+        path: "person",
+        select: "-_id CI name lastName phone email institution",
+        populate: {
+          path: "institution",
+          select: "-_id nameInstitution",
+        },
+      })
+      .lean()
+      .exec();
+
+    const listCaso = await Promise.all(
+      casos.map(async (caso) => {
+        const student = students.filter(
+          (student) => String(student._id) === String(caso.student._id)
+        )[0];
+
+        const testTeacher = await TestTeacher.findOne({
+          caso: caso._id,
+        }).exec();
+
+        return {
+          id: caso._id || "no asignado",
+          idStudent: student ? student._id : "no asignado",
+          name: student?.person?.name || "no asignado",
+          lastName: student?.person?.lastName || "no asignado",
+          CI: student?.person?.CI || "no asignado",
+          nameT: teacher?.user?.person?.name || "no asignado",
+          lastNameT: teacher?.user?.person?.lastName || "no asignado",
+          CIteacher: teacher?.user?.person?.CI || "no asignado",
+          institution:
+            student?.person?.institution?.nameInstitution || "no asignado",
+          dateStart: caso.dateStart || "no asignado",
+          statusTestTeacher: testTeacher ? testTeacher.status : false,
+        };
+      })
+    );
+    res.status(200).send({ message: "Datos extraidos", data: listCaso });
   } catch (error) {
     console.log(error);
-    res.status(500).send({ error: error + "Error retrieving caso" });
+    res.status(500).send({ error: "Error retrieving caso" });
   }
 };
 
