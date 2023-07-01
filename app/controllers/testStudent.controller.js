@@ -79,7 +79,7 @@ exports.findAll = async (req, res) => {
         },
       },
     ]);
-    console.log(tests)
+    console.log(tests);
 
     const listTests = await Promise.all(
       tests.map(async (test) => {
@@ -121,12 +121,11 @@ exports.findAll = async (req, res) => {
 
 exports.deleteOne = async (req, res) => {
   try {
-    const testStudent = await TestStudent.deleteOne({ _id: req.params.id });
-    const cases = await Case.findOne({ testStudent: req.params.id });
-    cases.statusTestStudent = "active";
-    await cases.save();
-    res.status(200).send({ message: "TestStudent deleted" });
+    const testStudent = await TestStudent.findByIdAndDelete(req.params.id);
+
+    res.status(200).send({ message: "Test Student eliminado correctamente" });
   } catch (error) {
+    console.log(error);
     res.status(400).send({ error: error + "Error deleting testStudent" });
   }
 };

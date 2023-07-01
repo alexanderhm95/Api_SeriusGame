@@ -78,7 +78,7 @@ exports.findAll = async (req, res) => {
         },
       },
     ]);
-    console.log(tests)
+    console.log(tests);
 
     const listTests = await Promise.all(
       tests.map(async (test) => {
@@ -128,14 +128,9 @@ exports.getTestTeacher = async (req, res) => {
 
 exports.deleteOne = async (req, res) => {
   try {
-    const testTeacher = await TestTeacher.deleteOne({ _id: req.params.id });
-    console.log("Mostrar testTeacher", testTeacher);
-    const caso = await Caso.findOne({ testTeacher: req.params.id });
-    console.log("Mostrar caso", caso);
-    caso.statusTestTeacher = "active";
-    console.log("Mostrar caso editado ", caso);
-    await caso.save();
-    res.status(200).send(testTeacher);
+    const testTeacher = await TestTeacher.findByIdAndDelete(req.params.id);
+
+    res.status(200).send({ message: "Test Teacher eliminado correctamente" });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error + "Error deleting testTeacher" });
