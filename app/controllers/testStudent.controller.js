@@ -92,7 +92,7 @@ exports.findAll = async (req, res) => {
           scoreMax: test.scoreMax,
           score: test.score,
           diagnostic: test.diagnostic,
-          statusTestStudent: test.status,
+          statusTestStudent: test.status ? test.status : false,
           dateAplication: test.createdAt,
           ciStudent: personStudent.CI,
           nameStudent: personStudent.name,
