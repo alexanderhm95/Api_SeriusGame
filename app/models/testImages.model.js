@@ -29,6 +29,6 @@ const TestImageSchema = new Schema(
 );
 
 TestImageSchema.plugin(mongoosePaginate);
-
+12
 const TestImages = mongoose.model("TestImages", TestImageSchema);
 module.exports = TestImages;

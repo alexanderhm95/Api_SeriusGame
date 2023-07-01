@@ -1,8 +1,9 @@
 const Institution = require("../models/institution.model.js");
+const Caso = require("../models/caso.model.js");
 
 // Create and Save a new institution
 exports.createInstitution = async (req, res) => {
-  console.log("Llegue con:",req.body);
+  console.log("Llegue con:", req.body);
   try {
     //desestructuramos el body
     const {
@@ -81,16 +82,60 @@ exports.updateInstitution = async (req, res) => {
 exports.deleteInstitution = async (req, res) => {
   console.log(req.params.id);
   try {
-    const institution = await Institution.findByIdAndRemove(req.params.id);
+    const institution = await Institution.findById(req.params.id);
+
+    const caso = await Caso.aggregate([
+      {
+        $lookup: {
+          from: "students",
+          localField: "student",
+          foreignField: "_id",
+          as: "studentData",
+        },
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "studentData.person",
+          foreignField: "_id",
+          as: "personData",
+        },
+      },
+      {
+        $lookup: {
+          from: "institutions",
+          localField: "personData.institution",
+          foreignField: "_id",
+          as: "institutionData",
+        },
+      },
+      {
+        $match: {
+          "institutionData.nameInstitution": institution.nameInstitution,
+        },
+      },
+    ]);
+
+    console.log("===============================");
+    console.log(caso);
+    console.log(caso.length);
+    console.log("===============================");
+
+    if (caso.length > 0) {
+      return res
+        .status(400)
+        .send({ error: `La institución tiene ${caso.length} casos asociados` });
+    }
+
     if (!institution) {
       return res.status(400).send({ error: "Institution not found" });
     }
-    res
-      .status(200)
-      .send({
-        message: "Institución eliminada correctamente",
-        data: institution,
-      });
+    institution.remove();
+
+    res.status(200).send({
+      message: "Institución eliminada correctamente",
+      data: institution,
+    });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: "Error al eliminar la institución" });

@@ -63,6 +63,7 @@ exports.findAll = async (req, res) => {
           score: 1, // Incluir el campo score
           diagnostic: 1, // Incluir el campo diagnostic
           status: 1, // Incluir el campo status
+          createdAt: 1, //Incluir fechas de creacion
           "studentData.grade": 1, // Incluir el campo "student" de "casoData"
           "studentData.parallel": 1, // Incluir el campo "student" de "casoData"
           "personStudentData.CI": 1, // Incluir el campo "name" de "personStudentData"
@@ -77,6 +78,7 @@ exports.findAll = async (req, res) => {
         },
       },
     ]);
+    console.log(tests)
 
     const listTests = await Promise.all(
       tests.map(async (test) => {
@@ -101,6 +103,7 @@ exports.findAll = async (req, res) => {
           nameTeacher: personTeacher.name,
           lastNameTeacher: personTeacher.lastName,
           emailTeacher: personTeacher.email,
+          createAt: test.createdAt,
         };
       })
     );

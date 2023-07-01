@@ -79,6 +79,7 @@ exports.findAll = async (req, res) => {
         },
       },
     ]);
+    console.log(tests)
 
     const listTests = await Promise.all(
       tests.map(async (test) => {
@@ -104,6 +105,7 @@ exports.findAll = async (req, res) => {
           nameDece: personDece.name,
           lastNameDece: personDece.lastName,
           emailDece: personDece.email,
+          createAt: test.createdAt,
         };
       })
     );

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Student = require("../models/student.model.js");
 const Person = require("../models/person.model.js");
 const Institution = require("../models/institution.model.js");
+const Caso = require("../models/caso.model.js");
 
 // Create and Save a new student
 exports.createStudent = async (req, res) => {
@@ -223,6 +224,15 @@ exports.deleteStudent = async (req, res) => {
     const studentId = req.params.id;
 
     const student = await Student.findByIdAndDelete(studentId).session(session);
+    const caso = await Caso.findOne({ student: studentId }).session(session);
+    if (caso) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "El estudiante tiene un caso asociado" });
+    }
+
     if (!student) {
       await session.abortTransaction();
       session.endSession();
