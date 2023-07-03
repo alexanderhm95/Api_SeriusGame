@@ -41,7 +41,7 @@ exports.createUser = async (req, res) => {
     await new User({
       person: newPerson._id,
       password: hashedPassword,
-      role,
+      role:"ADMIN",
     }).save({ session });
 
     await session.commitTransaction();

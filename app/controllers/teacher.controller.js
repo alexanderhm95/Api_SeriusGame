@@ -4,6 +4,7 @@ const Institution = require("../models/institution.model.js");
 const Teacher = require("../models/teacher.model.js");
 const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
+const { encrypt } = require("../utils/helpers/handle.password");
 
 // Create and Save a new dece
 exports.createTeacher = async (req, res) => {
@@ -19,9 +20,12 @@ exports.createTeacher = async (req, res) => {
       phone,
       email,
       nameInstitution,
-      password,
     } = req.body;
 
+    const existingInstitution = await Institution.findOne({ nameInstitution });
+    if (!existingInstitution) {
+      throw new Error("La institución no está registrada");
+    }
     const existingPerson = await Person.findOne({ email }).session(session);
     if (existingPerson) {
       throw new Error("La persona ya está registrada");
@@ -34,33 +38,20 @@ exports.createTeacher = async (req, res) => {
       address,
       phone,
       email,
+      institution: existingInstitution._id,
     }).save({ session });
 
-    const existingUser = await User.findOne({ person: newPerson._id }).session(
-      session
-    );
-
-    if (existingUser) {
-      throw new Error("El usuario ya está registrado");
-    }
-
-    const institution = await Institution.findOne({ nameInstitution }).session(
-      session
-    );
-
-    if (!institution) {
-      throw new Error("La institución no está registrada");
-    }
+    //encriptamos la contraseña
+    const hashedPassword = await encrypt(CI);
 
     const user = await new User({
-      password,
+      password: hashedPassword,
       person: newPerson._id,
       role: "TEACHER",
     }).save({ session });
 
-    await new Dece({
-      user: user,
-      institution: institution,
+    await new Teacher({
+      user: user._id,
     }).save({ session });
     await session.commitTransaction();
     session.endSession();
@@ -180,10 +171,12 @@ exports.updateTeacher = async (req, res) => {
       req.body;
 
     const teacher = await Teacher.findById(id).session(session);
-    if(!teacher){
+    if (!teacher) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).send({error: "El docente no se encuentra registrado"})
+      return res
+        .status(400)
+        .send({ error: "El docente no se encuentra registrado" });
     }
 
     const existingPerson = await Person.findOne({ email }).session(session);

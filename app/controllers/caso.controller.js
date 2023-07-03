@@ -11,6 +11,7 @@ const TestTeacher = require("../models/testTeacher.model.js");
 const TestQuestion = require("../models/testQuestion.model.js");
 const TestImages = require("../models/testImages.model.js");
 const Institution = require("../models/institution.model.js");
+const { encrypt } = require("../utils/helpers/handle.password");
 
 // Create and Save a new caso    Listo el create
 exports.create = async (req, res) => {
@@ -104,9 +105,11 @@ exports.create = async (req, res) => {
         institution: institution._id,
       });
 
+      //encriptamos la contraseña
+      const hashedPassword = await encrypt(personTeacher.CI);
       const user = new User({
         person: personTeacher._id,
-        password: ciTeacher,
+        password: hashedPassword,
         role: "TEACHER",
       });
 
@@ -185,6 +188,7 @@ exports.testStudent = async (req, res) => {
       (total, answer) => total + answer.valueAnswer,
       0
     );
+   
     const percent = (score / scoreMax) * 100;
 
     let diagnostic;

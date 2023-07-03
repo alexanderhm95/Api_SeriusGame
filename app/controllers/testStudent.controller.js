@@ -62,6 +62,7 @@ exports.findAll = async (req, res) => {
           _id: 1, // Incluir el campo _id,
           scoreMax: 1, // Incluir el campo scoreMax
           score: 1, // Incluir el campo score
+          scoreEvaluator: 1,
           diagnostic: 1, // Incluir el campo diagnostic
           status: 1, // Incluir el campo status
           createdAt: 1, //Incluir fechas de creacion
@@ -91,6 +92,7 @@ exports.findAll = async (req, res) => {
           id: test._id,
           scoreMax: test.scoreMax,
           score: test.score,
+          scoreEvaluator: test.scoreEvaluator,
           diagnostic: test.diagnostic,
           statusTestStudent: test.status ? test.status : false,
           dateAplication: test.createdAt,
@@ -146,5 +148,53 @@ exports.getTestStudent = async (req, res) => {
     res.status(200).send(test);
   } catch (error) {
     res.status(400).send({ error: error + "Error finding testStudent" });
+  }
+};
+
+exports.scoreUpdate = async (req, res) => {
+  console.log(req.body);
+  try {
+    const { scoreEvaluator } = req.body;
+    const testStudent = await TestStudent.findById(req.params.id);
+
+    if (!testStudent) {
+      return res
+        .status(400)
+        .send({ error: "El test no se encuentra registrado" });
+    }
+    if (scoreEvaluator) {
+      testStudent.score += 1;
+      testStudent.scoreEvaluator += 1;
+    } else {
+      testStudent.score -= 1;
+      testStudent.scoreEvaluator -= 1;
+    }
+
+    if (testStudent.score < 0 || testStudent.score > testStudent.scoreMax) {
+      return res
+        .status(400)
+        .send({ error: "Error al cambiar la puntuación del test" });
+    }
+
+    const percent = (testStudent.score / testStudent.scoreMax) * 100;
+
+    let diagnosticUpdate;
+    if (percent >= 70) {
+      diagnosticUpdate =
+        "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
+    } else if (percent >= 40) {
+      diagnosticUpdate =
+        "El alumno presenta un riesgo MODERADO de haber sido victima de violencia sexual";
+    } else {
+      diagnosticUpdate =
+        "El alumno presenta un riesgo LEVE de haber sido victima de violencia sexual";
+    }
+
+    testStudent.diagnostic = diagnosticUpdate;
+    testStudent.save();
+
+    res.status(200).send({ message: "Test Teacher actualizado correctamente" });
+  } catch (error) {
+    res.status(400).send({ error: error + "Error updating testTeacher" });
   }
 };

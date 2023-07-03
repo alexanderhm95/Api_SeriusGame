@@ -15,6 +15,10 @@ const TestStudentSchema = new Schema(
       type: Number,
       default: 0,
     },
+    scoreEvaluator:{
+      type: Number,
+      default: 0,
+    },
     diagnostic: {
       type: String,
       default: null,
@@ -23,9 +27,11 @@ const TestStudentSchema = new Schema(
       {
         refImages: {
           type: String,
+          required: true,
         },
         valueAnswer: {
           type: Number,
+          required: true,
         },
       },
     ],

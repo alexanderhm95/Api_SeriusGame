@@ -5,11 +5,11 @@ const Caso = require("../models/caso.model.js");
 const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
 const Institution = require("../models/institution.model.js");
+const { encrypt } = require("../utils/helpers/handle.password");
 
 // Create and Save a new dece
 exports.createDece = async (req, res) => {
   console.log(req.body);
-
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -35,31 +35,18 @@ exports.createDece = async (req, res) => {
       institution: existingInstitution._id,
     }).save({ session });
 
-    const existingUser = await User.findOne({ person: newPerson._id }).session(
-      session
-    );
+    //encriptamos la contraseña
+    const hashedPassword = await encrypt(CI);
 
-    if (existingUser) {
-      throw new Error("El usuario ya está registrado");
-    }
-
-    const institution = await Institution.findOne({ nameInstitution }).session(
-      session
-    );
-
-    if (!institution) {
-      throw new Error("La institución no está registrada");
-    }
 
     const user = await new User({
-      password: CI,
+      password: hashedPassword,
       person: newPerson._id,
       role: "DECE",
     }).save({ session });
 
     await new Dece({
-      user: user,
-      institution: institution,
+      user: user._id
     }).save({ session });
     await session.commitTransaction();
     session.endSession();
