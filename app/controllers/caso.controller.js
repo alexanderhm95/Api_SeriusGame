@@ -379,12 +379,6 @@ exports.findAll = async (req, res) => {
         const testStudent = await TestStudent.findOne({ caso: caso._id });
         const testTeacher = await TestTeacher.findOne({ caso: caso._id });
 
-        console.log("====================================");
-        console.log(caso);
-        console.log(teacher);
-        console.log(teacher.user);
-        console.log("====================================");
-        
         return {
           id: caso._id,
           dateStart: caso ? caso.dateStart : null,
@@ -626,23 +620,24 @@ exports.deleteAll = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const caso = await Caso.findByIdAndRemove(req.params.id);
-    console.log("Caso eliminado: ", caso ? caso._id : "no asignado");
-    const testStudent = await TestStudent.findByIdAndRemove(caso.testStudent);
-    console.log(
-      "TestStudent eliminado: ",
-      testStudent ? testStudent._id : "no asignado"
-    );
-    const testTeacher = await TestTeacher.findByIdAndRemove(caso.testTeacher);
-    console.log(
-      "TestTeacher eliminado: ",
-      testTeacher ? testTeacher._id : "no asignado"
-    );
-    const student = await Student.findByIdAndRemove(caso.student);
-    console.log("Student eliminado: ", student ? student._id : "no asignado");
-    const person = await Person.findByIdAndRemove(student.person);
-    console.log("Person eliminado: ", person ? person._id : "no asignado");
+    const caso = await Caso.findById(req.params.id).session(session);
+    const student = Student.findById(caso.student).session(session);
+    const testTeacher = await TestTeacher.findOneAndRemove({ caso: caso._id });
+    const testStudent = await TestStudent.findOneAndRemove({ caso: caso._id });
+    if (testTeacher) {
+      (await testTeacher.remove()).$session;
+    }
+
+    if (testStudent) {
+      (await testStudent.remove()).$session;
+    }
+    await Person.findByIdAndRemove(student.person).session(session);
+
+    (await caso.remove()).$session;
+
     res.send({ message: "Caso deleted successfully!" });
   } catch (error) {
     res.status(500).send({ error: error + "Error deleting Caso" });
