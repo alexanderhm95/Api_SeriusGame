@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Dece = require("../models/dece.model.js");
+const Caso = require("../models/caso.model.js");
 const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
 const Institution = require("../models/institution.model.js");
@@ -12,16 +13,8 @@ exports.createDece = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const {
-      CI,
-      name,
-      lastName,
-      address,
-      phone,
-      email,
-      nameInstitution,
-      password,
-    } = req.body;
+    const { CI, name, lastName, address, phone, email, nameInstitution } =
+      req.body;
 
     const existingInstitution = await Institution.findOne({ nameInstitution });
     if (!existingInstitution) {
@@ -59,7 +52,7 @@ exports.createDece = async (req, res) => {
     }
 
     const user = await new User({
-      password,
+      password: CI,
       person: newPerson._id,
       role: "DECE",
     }).save({ session });
@@ -77,7 +70,6 @@ exports.createDece = async (req, res) => {
     session.endSession();
     console.log(error);
 
-    
     res.status(400).send({ error: "Error al crear el DECE" });
   }
 };
@@ -245,28 +237,33 @@ exports.deleteDece = async (req, res) => {
   try {
     const deceId = req.params.id;
 
-    const dece = await Dece.findByIdAndRemove(deceId).session(session);
+    const dece = await Dece.findById(deceId)
+      .populate({
+        path: "user",
+        populate: {
+          path: "person",
+          select: "-_id CI",
+        },
+      })
+      .session(session);
+
     if (!dece) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).send({ error: "Dece no encontrado" });
     }
 
-    const userId = dece.user;
-    const userDelete = await User.findByIdAndRemove(userId).session(session);
-    const personId = userDelete.person;
-    const personDelete = await Person.findByIdAndRemove(personId).session(
-      session
-    );
-
-    const [user, person] = await Promise.all([personDelete, userDelete]);
-    if (!user || !person) {
-      await session.abortTransaction();
-      session.endSession();
+    const caso = await Caso.find({ dece: deceId }).session(session);
+    console.log(caso);
+    if (caso.length > 0) {
       return res
         .status(400)
-        .send({ error: "Error al eliminar persona o usuario asociado" });
+        .send({ error: `El dece tiene ${caso.length} casos asociados` });
     }
+
+    await Person.findOneAndRemove({ CI: dece.user.person.CI }).session(session);
+
+    await dece.remove({ session });
 
     await session.commitTransaction();
     session.endSession();

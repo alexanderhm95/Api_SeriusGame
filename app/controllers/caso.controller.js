@@ -379,6 +379,12 @@ exports.findAll = async (req, res) => {
         const testStudent = await TestStudent.findOne({ caso: caso._id });
         const testTeacher = await TestTeacher.findOne({ caso: caso._id });
 
+        console.log("====================================");
+        console.log(caso);
+        console.log(teacher);
+        console.log(teacher.user);
+        console.log("====================================");
+        
         return {
           id: caso._id,
           dateStart: caso ? caso.dateStart : null,
@@ -395,9 +401,7 @@ exports.findAll = async (req, res) => {
 
           parrallel: student ? student.parallel : "no asignado",
 
-          ciTeacher: teacher.user?.person
-            ? teacher.user?.person.CI
-            : "no asignado",
+          ciTeacher: teacher?.user ? teacher?.user?.person?.CI : "no asignado",
           nameTeacher: teacher.user?.person
             ? teacher.user?.person.name
             : "no asignado",

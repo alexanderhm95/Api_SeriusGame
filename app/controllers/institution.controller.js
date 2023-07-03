@@ -116,10 +116,6 @@ exports.deleteInstitution = async (req, res) => {
       },
     ]);
 
-    console.log("===============================");
-    console.log(caso);
-    console.log(caso.length);
-    console.log("===============================");
 
     if (caso.length > 0) {
       return res
