@@ -150,26 +150,34 @@ exports.updateUserStatus = async (req, res) => {
 
 //metodo para eliminar un usuario de la base de datos
 exports.deleteUser = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let session;
+
   try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+    
     const { id } = req.params;
 
     // Encuentra el usuario y obtén el ID de la persona asociada
-    const user = await User.findById(id).select("person").session(session);
+    const user = await User.findById(id).session(session);
 
     if (!user) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).send({ error: "Usuario no encontrado" });
     }
 
-    const personId = user.person;
+    if(user.person===null){
+      await User.findByIdAndDelete(id).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res
+        .status(200)
+        .send({ message: "Usuario eliminado correctamente" });
+    }
 
-    await Promise.all([
-      User.findByIdAndDelete(id).session(session),
-      personId
-        ? Person.findByIdAndDelete(personId).session(session)
-        : Promise.resolve(),
-    ]);
+    await Person.findByIdAndDelete(user.person).session(session);
+    await User.findByIdAndDelete(id).session(session);
 
     await session.commitTransaction();
     session.endSession();

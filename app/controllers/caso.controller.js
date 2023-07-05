@@ -188,7 +188,7 @@ exports.testStudent = async (req, res) => {
       (total, answer) => total + answer.valueAnswer,
       0
     );
-   
+
     const percent = (score / scoreMax) * 100;
 
     let diagnostic;
@@ -328,7 +328,12 @@ exports.testTeacher = async (req, res) => {
 //Se lista todos los casos para el DECE
 exports.findAll = async (req, res) => {
   try {
-    const casos = await Caso.find()
+    const { id } = req.params;
+
+    const dece = await Dece.findOne({ user: id }).lean();
+    console.log(dece);
+
+    const casos = await Caso.find({ dece: dece._id })
       .populate({
         path: "student",
         select: "-_id grade parallel",
@@ -375,6 +380,8 @@ exports.findAll = async (req, res) => {
       })
       .lean();
 
+    console.log(casos.length);
+
     const listaCasos = await Promise.all(
       casos.map(async (caso) => {
         const student = caso.student;
@@ -400,13 +407,13 @@ exports.findAll = async (req, res) => {
           parrallel: student ? student.parallel : "no asignado",
 
           ciTeacher: teacher?.user ? teacher?.user?.person?.CI : "no asignado",
-          nameTeacher: teacher.user?.person
+          nameTeacher: teacher?.user
             ? teacher.user?.person.name
             : "no asignado",
-          lastNameTeacher: teacher.user?.person
+          lastNameTeacher: teacher?.user
             ? teacher.user?.person.lastName
             : "no asignado",
-          emailTeacher: teacher.user?.person
+          emailTeacher: teacher?.user
             ? teacher.user?.person.email
             : "no asignado",
 
@@ -600,6 +607,7 @@ exports.getCaso = async (req, res) => {
       diagnosticStudent: testStudent?.diagnostic || "no asignado",
       scoreMaxStudent: testStudent?.scoreMax || null,
       scoreStudent: testStudent?.score || null,
+      scoreEvaluator: testStudent?.scoreEvaluator || null,
 
       statusTestTeacher: testTeacher?.status || false,
       diagnosticTeacher: testTeacher?.diagnostic || "no asignado",
@@ -625,25 +633,36 @@ exports.deleteAll = async (req, res) => {
 
 exports.delete = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
+
   try {
-    const caso = await Caso.findById(req.params.id).session(session);
-    const student = Student.findById(caso.student).session(session);
-    const testTeacher = await TestTeacher.findOneAndRemove({ caso: caso._id });
-    const testStudent = await TestStudent.findOneAndRemove({ caso: caso._id });
-    if (testTeacher) {
-      (await testTeacher.remove()).$session;
-    }
+    await session.withTransaction(async () => {
+      const caso = await Caso.findById(req.params.id).session(session);
 
-    if (testStudent) {
-      (await testStudent.remove()).$session;
-    }
-    await Person.findByIdAndRemove(student.person).session(session);
+      if (caso) {
+        const student = await Student.findById(caso.student).session(session);
+        const testTeacherPromise = TestTeacher.findOneAndRemove({
+          caso: caso._id,
+        }).session(session);
+        const testStudentPromise = TestStudent.findOneAndRemove({
+          caso: caso._id,
+        }).session(session);
 
-    (await caso.remove()).$session;
+        await Promise.all([testTeacherPromise, testStudentPromise]);
+
+        if (student) {
+          await Person.findByIdAndRemove(student.person).session(session);
+          await Student.findByIdAndRemove(student._id).session(session);
+        }
+
+        await caso.remove();
+      }
+    });
 
     res.send({ message: "Caso deleted successfully!" });
   } catch (error) {
-    res.status(500).send({ error: error + "Error deleting Caso" });
+    console.error(error);
+    res.status(500).send({ error: "Error deleting caso" });
+  } finally {
+    session.endSession();
   }
 };

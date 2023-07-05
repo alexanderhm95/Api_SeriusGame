@@ -4,23 +4,17 @@ const Institution = require("../models/institution.model.js");
 const Teacher = require("../models/teacher.model.js");
 const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
+const Caso = require("../models/caso.model.js");
 const { encrypt } = require("../utils/helpers/handle.password");
 
-// Create and Save a new dece
+// Create and Save a new teacher
 exports.createTeacher = async (req, res) => {
   console.log(req.body);
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const {
-      CI,
-      name,
-      lastName,
-      address,
-      phone,
-      email,
-      nameInstitution,
-    } = req.body;
+    const { CI, name, lastName, address, phone, email, nameInstitution } =
+      req.body;
 
     const existingInstitution = await Institution.findOne({ nameInstitution });
     if (!existingInstitution) {
@@ -231,43 +225,72 @@ exports.updateTeacher = async (req, res) => {
 };
 
 exports.deleteTeacher = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let session;
+
   try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     const teacherId = req.params.id;
 
-    const teacher = await Teacher.findByIdAndRemove(teacherId).session(session);
+    const teacher = await Teacher.findById(teacherId)
+      .populate({
+        path: "user",
+        populate: {
+          path: "person",
+          select: "-_id CI",
+        },
+      })
+      .session(session);
+
     if (!teacher) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).send({ error: "Docente no encontrado" });
+      return res.status(404).send({ error: "Docente no encontrado" });
     }
 
-    const userId = teacher.user;
-    const userDelete = await User.findByIdAndRemove(userId).session(session);
-    const personId = userDelete.person;
-    const personDelete = await Person.findByIdAndRemove(personId).session(
+    const casoCount = await Caso.countDocuments({ teacher: teacherId }).session(
       session
     );
 
-    const [user, person] = await Promise.all([personDelete, userDelete]);
-    if (!user || !person) {
+    if (teacher.user.person === null && casoCount === 0) {
+      await User.findByIdAndRemove(teacher.user._id).session(session);
+      await Teacher.findByIdAndRemove(teacherId).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).send({ message: "Docente eliminado correctamente" });
+    }
+
+    if (teacher.user === null && casoCount === 0) {
+      await Teacher.findByIdAndRemove(teacherId).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).send({ message: "Docente eliminado correctamente" });
+    }
+
+    if (casoCount > 0) {
       await session.abortTransaction();
       session.endSession();
       return res
         .status(400)
-        .send({ error: "Error al eliminar persona o usuario asociado" });
+        .send({ error: `El docente tiene ${casoCount} casos asociados` });
     }
+
+    await Person.findOneAndRemove({ CI: teacher.user.person.CI }).session(
+      session
+    );
+    await User.findByIdAndRemove(teacher.user._id).session(session);
+    await Teacher.findByIdAndRemove(teacherId).session(session);
 
     await session.commitTransaction();
     session.endSession();
 
     res.status(200).send({ message: "Docente eliminado correctamente" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     await session.abortTransaction();
     session.endSession();
 
-    res.status(400).send({ error: "Error al eliminar el docente" });
+    res.status(500).send({ error: "Error al eliminar el docente" });
   }
 };

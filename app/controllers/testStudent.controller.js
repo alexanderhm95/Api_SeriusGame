@@ -162,13 +162,20 @@ exports.scoreUpdate = async (req, res) => {
         .status(400)
         .send({ error: "El test no se encuentra registrado" });
     }
-    if (scoreEvaluator) {
-      testStudent.score += 1;
-      testStudent.scoreEvaluator += 1;
-    } else {
-      testStudent.score -= 1;
-      testStudent.scoreEvaluator -= 1;
+
+    if (
+      (scoreEvaluator && testStudent.scoreEvaluator === 1) ||
+      (!scoreEvaluator && testStudent.scoreEvaluator === 0)
+    ) {
+      return res
+        .status(400)
+        .send({ error: "No se permite modificar la puntuación del test." });
     }
+
+    const scoreChange = scoreEvaluator ? 1 : -1;
+
+    testStudent.score += scoreChange;
+    testStudent.scoreEvaluator = scoreEvaluator ? 1 : 0;
 
     if (testStudent.score < 0 || testStudent.score > testStudent.scoreMax) {
       return res
@@ -184,17 +191,17 @@ exports.scoreUpdate = async (req, res) => {
         "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
     } else if (percent >= 40) {
       diagnosticUpdate =
-        "El alumno presenta un riesgo MODERADO de haber sido victima de violencia sexual";
+        "El alumno presenta un riesgo MODERADO de haber sido víctima de violencia sexual";
     } else {
       diagnosticUpdate =
-        "El alumno presenta un riesgo LEVE de haber sido victima de violencia sexual";
+        "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual";
     }
 
     testStudent.diagnostic = diagnosticUpdate;
-    testStudent.save();
+    await testStudent.save();
 
     res.status(200).send({ message: "Test Teacher actualizado correctamente" });
   } catch (error) {
-    res.status(400).send({ error: error + "Error updating testTeacher" });
+    res.status(400).send({ error: "Error updating testTeacher: " + error });
   }
 };

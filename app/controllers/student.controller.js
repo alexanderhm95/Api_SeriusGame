@@ -218,13 +218,38 @@ exports.updateStudent = async (req, res) => {
 
 // Delete a student with the specified studentId in the request
 exports.deleteStudent = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let session;
+
   try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     const studentId = req.params.id;
 
-    const student = await Student.findByIdAndDelete(studentId).session(session);
+    const student = await Student.findById(studentId)
+      .populate({
+        path: "person",
+        select: "CI name lastName age email phone address",
+      })
+      .session(session);
+
+    if (!student) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).send({ error: "Estudiante no encontrado" });
+    }
+
     const caso = await Caso.findOne({ student: studentId }).session(session);
+
+    if (student.person === null && !caso) {
+      await Student.findByIdAndRemove(studentId).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res
+        .status(200)
+        .send({ message: "estudiante eliminado correctamente" });
+    }
+
     if (caso) {
       await session.abortTransaction();
       session.endSession();
@@ -233,21 +258,8 @@ exports.deleteStudent = async (req, res) => {
         .send({ error: "El estudiante tiene un caso asociado" });
     }
 
-    if (!student) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).send({ error: "Estudiante no encontrado" });
-    }
-
-    const personId = student.person;
-    const person = await Person.findByIdAndDelete(personId).session(session);
-    if (!person) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(400)
-        .send({ error: "Error al eliminar la persona asociada" });
-    }
+    await Person.findOneAndRemove({ CI: student.person.CI }).session(session);
+    await Student.findByIdAndRemove(studentId).session(session);
 
     await session.commitTransaction();
     session.endSession();

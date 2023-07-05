@@ -219,9 +219,12 @@ exports.updateDece = async (req, res) => {
 
 // Delete a dece with the specified deceId in the request
 exports.deleteDece = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let session;
+
   try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     const deceId = req.params.id;
 
     const dece = await Dece.findById(deceId)
@@ -237,30 +240,53 @@ exports.deleteDece = async (req, res) => {
     if (!dece) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).send({ error: "Dece no encontrado" });
+      return res.status(404).send({ error: "Docente no encontrado" });
     }
 
-    const caso = await Caso.find({ dece: deceId }).session(session);
-    console.log(caso);
-    if (caso.length > 0) {
+    const casoCount = await Caso.countDocuments({ dece: deceId }).session(
+      session
+    );
+
+
+    if (dece.user.person === null && casoCount === 0) {
+      await User.findByIdAndRemove(dece.user._id).session(session);
+      await Dece.findByIdAndRemove(deceId).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).send({ message: "Docente eliminado correctamente" });
+    }
+
+    if (dece.user === null && casoCount === 0) {
+      await Dece.findByIdAndRemove(deceId).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).send({ message: "Docente eliminado correctamente" });
+    }
+
+    if (casoCount > 0) {
+      await session.abortTransaction();
+      session.endSession();
       return res
         .status(400)
-        .send({ error: `El dece tiene ${caso.length} casos asociados` });
+        .send({ error: `El docente tiene ${casoCount} casos asociados` });
     }
 
-    await Person.findOneAndRemove({ CI: dece.user.person.CI }).session(session);
 
-    await dece.remove({ session });
+    await Person.findOneAndRemove({ CI: dece.user.person.CI }).session(
+      session
+    );
+    await User.findByIdAndRemove(dece.user._id).session(session);
+    await Dece.findByIdAndRemove(deceId).session(session);
 
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).send({ message: "Dece eliminado correctamente" });
+    res.status(200).send({ message: "Docente eliminado correctamente" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     await session.abortTransaction();
     session.endSession();
 
-    res.status(400).send({ error: "Error al eliminar el dece" });
+    res.status(500).send({ error: "Error al eliminar el docente" });
   }
 };
