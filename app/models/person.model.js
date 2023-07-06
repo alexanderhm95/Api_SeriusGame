@@ -26,7 +26,6 @@ const PersonSchema = new Schema(
         },
         email: {
             type: String,
-            unique: true
         },
         CI: {
             type: String,

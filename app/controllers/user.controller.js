@@ -11,11 +11,28 @@ exports.createUser = async (req, res) => {
 
   try {
     //desestructuramos el body
-    const { CI, name, lastName, address, phone, email, password, role } =
+    const { CI, name, lastName, address, phone, email, password } =
       req.body;
 
     //validamos que el email no este registrado
-    const existingPerson = await Person.findOne({ email });
+    const existingPerson = await User.aggregate([
+      {
+        $lookup: {
+          from: "people",
+          localField: "person",
+          foreignField: "_id",
+          as: "personData",
+        },
+      },
+      {
+        $match: {
+          $and: [
+            { "personData.CI": CI },
+            { "personData.email": email },
+          ],
+        },
+      },
+    ])
 
     //si el email ya esta registrado retornamos un error
     if (existingPerson) {

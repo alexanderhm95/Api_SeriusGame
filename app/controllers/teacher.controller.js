@@ -20,9 +20,32 @@ exports.createTeacher = async (req, res) => {
     if (!existingInstitution) {
       throw new Error("La institución no está registrada");
     }
-    const existingPerson = await Person.findOne({ email }).session(session);
+    
+     //validamos que el email no este registrado
+     const existingPerson = await User.aggregate([
+      {
+        $lookup: {
+          from: "people",
+          localField: "person",
+          foreignField: "_id",
+          as: "personData",
+        },
+      },
+      {
+        $match: {
+          $and: [
+            { "personData.CI": CI },
+            { "personData.email": email },
+          ],
+        },
+      },
+    ])
+
+    //si el email ya esta registrado retornamos un error
     if (existingPerson) {
-      throw new Error("La persona ya está registrada");
+      return res
+        .status(400)
+        .send({ error: "Este usuario ya se encuentra registrado" });
     }
 
     const newPerson = await new Person({
