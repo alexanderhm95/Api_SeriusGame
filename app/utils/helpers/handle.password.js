@@ -10,9 +10,9 @@ const compare = async (password, hash) => {
     return result;
 }
 
-const desencrypt = async (password) =>{
+const decrypt = async (password) =>{
     const hash = await bcryptjs.hash(password, 10);
     return hash;
 } 
 
-module.exports = { encrypt, compare , desencrypt};
+module.exports = { encrypt, compare , decrypt};

@@ -1,6 +1,6 @@
 const User = require("../models/user.model");
 const Institution = require("../models/institution.model");
-const { encrypt, compare } = require("../utils/helpers/handle.password");
+const { encrypt, compare  } = require("../utils/helpers/handle.password");
 const { sendRecoveryCodeEmail } = require("../../config/mail.conf");
 const { generateToken } = require("../utils/helpers/handle.jwt");
 
@@ -53,6 +53,7 @@ exports.login = async (req, res) => {
       return res.status(400).send({ error: "Usuario inactivo" });
     }
     // Verificar la validez de la contraseña
+  
     const isPasswordValid = await compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).send({ error: "Contraseña invalida" });

@@ -2,6 +2,7 @@ const TestImages = require("../models/testImages.model");
 const { resolve } = require("path");
 const fs = require("fs");
 const path = require("path");
+const { shuffle } = require("../utils/helpers/tools.js")
 
 // Create and Save a new TestImages
 exports.create = async (req, res) => {
@@ -64,7 +65,8 @@ exports.findAllPaginated = async (req, res) => {
 exports.findAll = async (req, res) => {
   try {
     const testImages = await TestImages.find();
-    res.status(200).send({ message: "ok", data: testImages });
+    const data = await shuffle(testImages) 
+     res.status(200).send({ message: "ok", data});
   } catch (error) {
     res.status(400).send({ error: error + "Error getting TestImages" });
   }

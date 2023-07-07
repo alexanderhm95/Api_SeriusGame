@@ -20,27 +20,16 @@ exports.createTeacher = async (req, res) => {
     if (!existingInstitution) {
       throw new Error("La institución no está registrada");
     }
-    
-     //validamos que el email no este registrado
-     const existingPerson = await User.aggregate([
-      {
-        $lookup: {
-          from: "people",
-          localField: "person",
-          foreignField: "_id",
-          as: "personData",
-        },
-      },
-      {
-        $match: {
-          $and: [
-            { "personData.CI": CI },
-            { "personData.email": email },
-          ],
-        },
-      },
-    ])
 
+    //validamos que el email no este registrado
+    const existingPerson = await User.find()
+      .populate({
+        path: "person",
+        match: {
+          $and: [{ CI: CI }, { email: email }],
+        },
+      })
+      .lean();
     //si el email ya esta registrado retornamos un error
     if (existingPerson) {
       return res
@@ -281,14 +270,18 @@ exports.deleteTeacher = async (req, res) => {
       await Teacher.findByIdAndRemove(teacherId).session(session);
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).send({ message: "Docente eliminado correctamente" });
+      return res
+        .status(200)
+        .send({ message: "Docente eliminado correctamente" });
     }
 
     if (teacher.user === null && casoCount === 0) {
       await Teacher.findByIdAndRemove(teacherId).session(session);
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).send({ message: "Docente eliminado correctamente" });
+      return res
+        .status(200)
+        .send({ message: "Docente eliminado correctamente" });
     }
 
     if (casoCount > 0) {

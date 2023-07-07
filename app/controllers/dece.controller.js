@@ -17,29 +17,23 @@ exports.createDece = async (req, res) => {
       req.body;
 
     const existingInstitution = await Institution.findOne({ nameInstitution });
+  console.log(existingInstitution)
     if (!existingInstitution) {
       throw new Error("La institución no está registrada");
     }
 
     //validamos que el email no este registrado
-    const existingPerson = await User.aggregate([
-      {
-        $lookup: {
-          from: "people",
-          localField: "person",
-          foreignField: "_id",
-          as: "personData",
-        },
+    const existingPerson = await User.find()
+    .populate({
+      path: "person",
+      match: {
+        $and: [{ "CI": CI }, { "email": email }],
       },
-      {
-        $match: {
-          $and: [{ "personData.CI": CI }, { "personData.email": email }],
-        },
-      },
-    ]);
+    }).lean();
 
     //si el email ya esta registrado retornamos un error
-    if (existingPerson) {
+    if (existingPerson ) {
+      console.log("Este usuario ya se encuentra registrado")
       return res
         .status(400)
         .send({ error: "Este usuario ya se encuentra registrado" });
@@ -259,7 +253,7 @@ exports.deleteDece = async (req, res) => {
     if (!dece) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).send({ error: "Docente no encontrado" });
+      return res.status(404).send({ error: "Dece no encontrado" });
     }
 
     const casoCount = await Caso.countDocuments({ dece: deceId }).session(
@@ -273,7 +267,7 @@ exports.deleteDece = async (req, res) => {
       session.endSession();
       return res
         .status(200)
-        .send({ message: "Docente eliminado correctamente" });
+        .send({ message: "Dece eliminado correctamente" });
     }
 
     if (dece.user === null && casoCount === 0) {
@@ -282,7 +276,7 @@ exports.deleteDece = async (req, res) => {
       session.endSession();
       return res
         .status(200)
-        .send({ message: "Docente eliminado correctamente" });
+        .send({ message: "Dece eliminado correctamente" });
     }
 
     if (casoCount > 0) {
@@ -290,7 +284,7 @@ exports.deleteDece = async (req, res) => {
       session.endSession();
       return res
         .status(400)
-        .send({ error: `El docente tiene ${casoCount} casos asociados` });
+        .send({ error: `El dece tiene ${casoCount} casos asociados` });
     }
 
     await Person.findOneAndRemove({ CI: dece.user.person.CI }).session(session);
