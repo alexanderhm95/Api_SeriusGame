@@ -6,73 +6,45 @@ const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
 const Institution = require("../models/institution.model.js");
 const { encrypt } = require("../utils/helpers/handle.password");
+const { validateIDCard } = require("../utils/helpers/tools.js");
 
 // Create and Save a new dece
 exports.createDece = async (req, res) => {
-  console.log(req.body);
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    const { CI, name, lastName, address, phone, email, nameInstitution } =
-      req.body;
+    const { CI, name, lastName, address, phone, email, nameInstitution } = req.body;
+
+    const validateCard = await validateIDCard(CI);
+    if (!validateCard) {
+      console.log("La cédula que ingresaste es inválida");
+      return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
+    }
 
     const existingInstitution = await Institution.findOne({ nameInstitution });
-  console.log(existingInstitution)
     if (!existingInstitution) {
-      throw new Error("La institución no está registrada");
+      console.log("La institución no se encuentra registrada");
+      return res.status(400).send({ error: "La institución no se encuentra registrada" });
     }
 
-    //validamos que el email no este registrado
-    const existingPerson = await User.find()
-    .populate({
-      path: "person",
-      match: {
-        $and: [{ "CI": CI }, { "email": email }],
-      },
-    }).lean();
+    const existingPerson = await User.exists({ "personData.CI": CI, "personData.email": email });
+    console.log("La persona", existingPerson);
 
-    //si el email ya esta registrado retornamos un error
-    if (existingPerson ) {
-      console.log("Este usuario ya se encuentra registrado")
-      return res
-        .status(400)
-        .send({ error: "Este usuario ya se encuentra registrado" });
+    if (existingPerson) {
+      console.log("Este usuario ya se encuentra registrado");
+      return res.status(400).send({ error: "Este usuario ya se encuentra registrado" });
     }
 
-    const newPerson = await new Person({
-      CI,
-      name,
-      lastName,
-      address,
-      phone,
-      email,
-      institution: existingInstitution._id,
-    }).save({ session });
-
-    //encriptamos la contraseña
+    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id });
     const hashedPassword = await encrypt(CI);
-
-    const user = await new User({
-      password: hashedPassword,
-      person: newPerson._id,
-      role: "DECE",
-    }).save({ session });
-
-    await new Dece({
-      user: user._id,
-    }).save({ session });
-    await session.commitTransaction();
-    session.endSession();
+    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" });
+    await Dece.create({ user: user._id });
 
     res.status(201).send({ message: "DECE creado correctamente" });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.log(error);
-
     res.status(400).send({ error: "Error al crear el DECE" });
   }
 };
+
 
 // Retrieve and return all dece from the database.
 exports.getDeces = async (req, res) => {
@@ -265,18 +237,14 @@ exports.deleteDece = async (req, res) => {
       await Dece.findByIdAndRemove(deceId).session(session);
       await session.commitTransaction();
       session.endSession();
-      return res
-        .status(200)
-        .send({ message: "Dece eliminado correctamente" });
+      return res.status(200).send({ message: "Dece eliminado correctamente" });
     }
 
     if (dece.user === null && casoCount === 0) {
       await Dece.findByIdAndRemove(deceId).session(session);
       await session.commitTransaction();
       session.endSession();
-      return res
-        .status(200)
-        .send({ message: "Dece eliminado correctamente" });
+      return res.status(200).send({ message: "Dece eliminado correctamente" });
     }
 
     if (casoCount > 0) {
