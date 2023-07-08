@@ -179,6 +179,13 @@ exports.testStudent = async (req, res) => {
         .send({ error: "Usuario no encontrado o borrado previamente" });
     }
 
+    const testOld = await TestStudent.findOne({caso:caso._id}).lean()
+    if(testOld){
+      return res
+        .status(400)
+        .send({ error: "El test ya ha sido ejecutado" });
+    }
+
     const questions = await TestImages.find({}, { value: 1 }); // Solo recuperar el campo "value" de TestImages
     const scoreMax = questions.reduce(
       (total, question) => total + question.value,
