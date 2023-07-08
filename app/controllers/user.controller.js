@@ -110,7 +110,8 @@ exports.getUser = async (req, res) => {
   }
 };
 
-//metodo para actualizar un usuario de la base de datos
+//metodo para actualizar un usuario de la base de datos 
+//No esta terminado 
 exports.updateUser = async (req, res) => {
   try {
     const { email, password, status, role } = req.body;

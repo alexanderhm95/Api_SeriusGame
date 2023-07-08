@@ -7,6 +7,7 @@ const TestTeacherSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Caso",
       required: true,
+            unique: true
     },
     scoreMax: {
       type: Number,
