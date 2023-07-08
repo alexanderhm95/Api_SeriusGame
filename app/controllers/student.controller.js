@@ -4,6 +4,7 @@ const Student = require("../models/student.model.js");
 const Person = require("../models/person.model.js");
 const Institution = require("../models/institution.model.js");
 const Caso = require("../models/caso.model.js");
+const { generateToken } = require("../utils/helpers/handle.jwt");
 
 // Create and Save a new student
 exports.createStudent = async (req, res) => {
@@ -353,7 +354,19 @@ exports.loginStudent = async (req, res) => {
     }
     console.log(student);
     let cedula = student.person.CI;
-    res.status(200).send({ message: "ok", data: cedula });
+    const response ={
+      id: student._id,
+      name: `${student.person.name} ${student.person.lastName}`,
+      institution: student.person.institution.nameInstitution,
+      role: 'STUDENT',
+    };
+    const token = generateToken(response)
+    const data ={
+      cedula,
+      token
+    }
+    console.log(data)
+    res.status(200).send({ message: "ok", data });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: "Error al iniciar sesión" });
