@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const teacherController = require('../controllers/teacher.controller');
+const checkAuth = require("../utils/validators/authCheck")
 
-router.post('/', teacherController.createTeacher);
-router.get('/', teacherController.getTeachers);
-router.get('/:id', teacherController.getTeacher);
-router.delete('/:id', teacherController.deleteTeacher);
-router.put('/:id', teacherController.updateTeacher);
+
+router.post('/',      checkAuth,  teacherController.createTeacher);
+router.get('/',       checkAuth,  teacherController.getTeachers);
+router.get('/:id',    checkAuth,  teacherController.getTeacher);
+router.delete('/:id', checkAuth,  teacherController.deleteTeacher);
+router.put('/:id',    checkAuth,  teacherController.updateTeacher);
 
 module.exports = router;

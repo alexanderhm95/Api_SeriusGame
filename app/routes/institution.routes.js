@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const institutionController = require('../controllers/institution.controller');
+const checkAuth = require("../utils/validators/authCheck")
 
-router.post('/', institutionController.createInstitution);
-router.get('/', institutionController.getInstitutions);
-router.get('/:id', institutionController.getInstitution);
-router.put('/:id', institutionController.updateInstitution);
-router.delete('/:id', institutionController.deleteInstitution);
+router.post('/',      checkAuth,  institutionController.createInstitution);
+router.get('/',       checkAuth,  institutionController.getInstitutions);
+router.get('/:id',    checkAuth,  institutionController.getInstitution);
+router.put('/:id',    checkAuth,  institutionController.updateInstitution);
+router.delete('/:id', checkAuth,  institutionController.deleteInstitution);
 
 module.exports = router;
