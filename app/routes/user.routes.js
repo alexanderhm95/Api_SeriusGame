@@ -5,7 +5,7 @@ const checkAuth = require("../utils/validators/authCheck")
 const {validateCreateUser} = require('../utils/validators/user.validator')
 
 
-router.post('/',       validateCreateUser, checkAuth, userController.createUser);
+router.post('/',       checkAuth, userController.createUser);
 router.get('/',        checkAuth, userController.getUsers);
 router.get('/:id',     checkAuth, userController.getUser);
 router.put('/:id',     checkAuth, userController.updateUser);
