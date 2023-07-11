@@ -16,6 +16,11 @@ const PersonSchema = new Schema(
             type: Number,
             default: 0
         },
+        gender:{
+            type: String,
+            maxlength: 1, // Especifica la longitud máxima del campo
+            default: "O"
+        },
         address: {
             type: String,
             required: true

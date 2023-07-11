@@ -6,36 +6,38 @@ const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
 const Caso = require("../models/caso.model.js");
 const { encrypt } = require("../utils/helpers/handle.password");
+const { sendRecoveryCodeEmail } = require("../../config/mail.conf");
+const { validateIDCard, generatorPass } = require("../utils/helpers/tools.js");
 
 // Create and Save a new teacher
 exports.createTeacher = async (req, res) => {
   console.log(req.body);
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const { CI, name, lastName, address, phone, email, nameInstitution } =
       req.body;
+
+    const validateCard = await validateIDCard(CI);
+    if (!validateCard) {
+      console.log("La cédula que ingresaste es inválida");
+      return res
+        .status(400)
+        .send({ error: "La cédula que ingresaste es inválida" });
+    }
 
     const existingInstitution = await Institution.findOne({ nameInstitution });
     if (!existingInstitution) {
       throw new Error("La institución no está registrada");
     }
 
-    //validamos que el email no este registrado
-    const existingPerson = await User.find()
-      .populate({
-        path: "person",
-        match: {
-          $and: [{ CI: CI }, { email: email }],
-        },
-      })
-      .lean();
-    //si el email ya esta registrado retornamos un error
+    const existingPerson = await User.exists({ "personData.CI": CI, "personData.email": email });
+    console.log("La persona", existingPerson);
+
     if (existingPerson) {
-      return res
-        .status(400)
-        .send({ error: "Este usuario ya se encuentra registrado" });
+      console.log("Este usuario ya se encuentra registrado");
+      return res.status(400).send({ error: "Este usuario ya se encuentra registrado" });
     }
+
+    
 
     const newPerson = await new Person({
       CI,
@@ -45,27 +47,40 @@ exports.createTeacher = async (req, res) => {
       phone,
       email,
       institution: existingInstitution._id,
-    }).save({ session });
-
-    //encriptamos la contraseña
-    const hashedPassword = await encrypt(CI);
+    })
 
     const user = await new User({
       password: hashedPassword,
       person: newPerson._id,
       role: "TEACHER",
-    }).save({ session });
+    })
 
     await new Teacher({
       user: user._id,
-    }).save({ session });
-    await session.commitTransaction();
-    session.endSession();
+    })
+
+    const pass =  generatorPass();
+    const hashedPassword = await encrypt(pass);
+    const subject = 'SeriusGame - Nueva cuenta'
+    const operation = 0;
+
+    sendRecoveryCodeEmail(email, pass , subject, operation).then((result) => {
+    if (result === true) {
+        const message = `Código enviado exitosamente`;    
+        res.status(200).send({
+          message,
+        });
+      } else {
+        res.status(403).send({
+          error: "Servicio no disponible, inténtelo más tarde",
+        });
+      } 
+    });
+
+    
 
     res.status(201).send({ message: "Docente creado exitosamente" });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.log(error);
     res.status(400).send({ error: "Error al crear el docente" });
   }

@@ -16,10 +16,8 @@ const storage = multer.diskStorage({
   },
   // la imagen se guardara con el nombre despues de el _
   filename: (req, file, cb) => {
-    console.log("entro al filename");
-    console.log(file.originalname);
-    const name = file.originalname;
-    console.log(name);
+
+    const name = file.originalname.split("_")[1];
     cb(null, name);
   },
 });

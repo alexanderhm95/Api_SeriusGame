@@ -37,9 +37,24 @@ const validateIDCard = async (CI) => {
   const lastDigit = parseInt(CI.charAt(9));
   const result = sum % 10 === 0 ? 0 : 10 - (sum % 10);
 
-  return result === lastDigit && !(thirdDigit === 6 || thirdDigit === 9 && result !== 0);
+  return (
+    result === lastDigit &&
+    !(thirdDigit === 6 || (thirdDigit === 9 && result !== 0))
+  );
 };
 
+const generatorPass = () => {
+  const character =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const passLength = character.length;
+  let password = "";
 
+  for (let i = 0; i < 16; i++) {
+    const indice = Math.floor(Math.random() * [passLength]);
+    password += character.charAt(indice);
+  }
 
-module.exports = { shuffle, validateIDCard };
+  return password;
+};
+
+module.exports = { shuffle, validateIDCard, generatorPass };

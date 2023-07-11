@@ -19,8 +19,8 @@ exports.createStudent = async (req, res) => {
       lastName,
       address,
       phone,
-      email,
       age,
+      gender,
       nameInstitution,
       grade,
       parallel,
@@ -37,7 +37,7 @@ exports.createStudent = async (req, res) => {
       lastName,
       address,
       phone,
-      email,
+      gender,
     }).save({ session });
 
     const institution = await Institution.findOne({ nameInstitution }).session(
@@ -86,6 +86,7 @@ exports.getStudents = async (req, res) => {
           CI: person ? person.CI : "no asignado",
           name: person ? person.name : "no asignado",
           lastName: person ? person.lastName : "no asignado",
+          gender: person ? person.gender : "no asignado",
           age: person ? person.age : "no asignado",
           email: person ? person.email : "no asignado",
           phone: person ? person.phone : "no asignado",
@@ -116,7 +117,7 @@ exports.getStudent = async (req, res) => {
       .select("person institution grade parallel")
       .populate({
         path: "person",
-        select: "CI name lastName age email phone address",
+        select: "CI name lastName age email phone address gender",
         populate: {
           path: "institution",
           select: "nameInstitution",
@@ -133,6 +134,7 @@ exports.getStudent = async (req, res) => {
       CI: student.person ? student.person.CI : "no asignado",
       name: student.person ? student.person.name : "no asignado",
       lastName: student.person ? student.person.lastName : "no asignado",
+      gender: student.person ? student.person.gender : "no asignado",
       age: student.person ? student.person.age : "no asignado",
       address: student.person ? student.person.address : "no asignado",
       phone: student.person ? student.person.phone : "no asignado",
@@ -164,7 +166,7 @@ exports.updateStudent = async (req, res) => {
       lastName,
       address,
       phone,
-      email,
+      gender,
       age,
       nameInstitution,
       grade,
@@ -182,7 +184,7 @@ exports.updateStudent = async (req, res) => {
       lastName,
       address,
       phone,
-      email,
+      gender,
       age,
     }).session(session);
 
@@ -230,7 +232,7 @@ exports.deleteStudent = async (req, res) => {
     const student = await Student.findById(studentId)
       .populate({
         path: "person",
-        select: "CI name lastName age email phone address",
+        select: "CI name lastName age email phone address gender",
       })
       .session(session);
 

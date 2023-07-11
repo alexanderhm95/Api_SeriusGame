@@ -134,8 +134,10 @@ exports.recoverPassword = async (req, res) => {
     // Guardar los cambios en el usuario
     await User.findByIdAndUpdate(userObject._id, userObject).exec();
 
+    const subject = 'SeriusGame - Recuperación de cuenta'
+    const operation = 1;
     // Enviar el correo electrónico con el código de recuperación
-    sendRecoveryCodeEmail(email, recoverCode).then((result) => {
+    sendRecoveryCodeEmail(email, recoverCode, subject, operation).then((result) => {
       if (result === true) {
         res.status(200).send({
           message: "Código de recuperación enviado",

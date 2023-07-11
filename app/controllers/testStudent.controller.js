@@ -1,10 +1,19 @@
 const TestStudent = require("../models/testStudent.model.js");
+const TestTeacher = require("../models/testTeacher.model.js");
 const Person = require("../models/person.model.js");
 const Teacher = require("../models/teacher.model.js");
 const Dece = require("../models/dece.model.js");
 const Student = require("../models/student.model.js");
 const Institution = require("../models/institution.model.js");
 const Case = require("../models/caso.model.js");
+const PdfPrinter = require("pdfmake");
+const fs = require("fs");
+const path = require("path");
+
+const {
+  obtenerDatosInforme,
+  generarContenidoInforme,
+} = require("../utils/helpers/reportStudent.js");
 
 exports.findAll = async (req, res) => {
   try {
@@ -72,7 +81,7 @@ exports.findAll = async (req, res) => {
           "personStudentData.name": 1, // Incluir el campo "name" de "personStudentData"
           "personStudentData.lastName": 1, // Incluir el campo "name" de "personStudentData"
           "personStudentData.age": 1, // Incluir el campo "name" de "personStudentData"
-          "personStudentData.email": 1, // Incluir el campo "name" de "personStudentData"
+          "personStudentData.gender": 1, // Incluir el campo "name" de "personStudentData"
           "personDeceData.CI": 1, // Incluir el campo "name" de "personStudentData"
           "personDeceData.name": 1, // Incluir el campo "name" de "personStudentData"
           "personDeceData.lastName": 1, // Incluir el campo "name" de "personStudentData"
@@ -99,7 +108,7 @@ exports.findAll = async (req, res) => {
           ciStudent: personStudent.CI,
           nameStudent: personStudent.name,
           lastNameStudent: personStudent.lastName,
-          emailStudent: personStudent.email,
+          gender: personStudent.gender,
           ageStudent: personStudent.age,
           gradeStudent: student.grade,
           parallelStudent: student.parallel,
@@ -141,10 +150,60 @@ exports.deleteAll = async (req, res) => {
   }
 };
 
+exports.getTestStudentReport = async (req, res) => {
+  try {
+    // Obtener los datos necesarios para el informe desde tu base de datos
+    const casoData = await obtenerDatosInforme(req.params.id);
+
+    // Generar el contenido del informe
+    const docDefinition = await generarContenidoInforme(casoData);
+
+    // Crear el documento PDF
+    const printer = new PdfPrinter({
+      Roboto: {
+        normal: __dirname + "/fonts/Roboto-Regular.ttf",
+        bold: __dirname + "/fonts/Roboto-Bold.ttf",
+        italics: __dirname + "/fonts/Roboto-Italic.ttf",
+        bolditalics: __dirname + "/fonts/Roboto-BoldItalic.ttf",
+      },
+    });
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    const directory = "./temp";
+    if (!fs.existsSync(directory)) {
+      fs.mkdirSync(directory);
+    }
+
+    const filePath = path.join(__dirname, "../../temp/informe.pdf");
+
+    // Descargar el informe en la respuesta
+    pdfDoc.pipe(fs.createWriteStream(filePath)).on("finish", () => {
+      res.download(filePath, "informe.pdf", (error) => {
+        // Eliminar el archivo temporal después de descargarlo
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error("Error al eliminar el archivo temporal", err);
+          }
+        });
+
+        if (error) {
+          console.error("Error al descargar el informe", error);
+        }
+      });
+    });
+
+    pdfDoc.end();
+    
+  } catch (error) {
+    console.error("Error al generar el informe", error);
+    res.status(500).send({ error: "Error al generar el informe" });
+  }
+};
+
 exports.getTestStudent = async (req, res) => {
   try {
-    console.log("llegue.. al test student");
-    const test = await TestStudent.findById(req.params.id);
+    const test = await TestStudent.findOne({ caso: req.params.id });
     res.status(200).send(test);
   } catch (error) {
     res.status(400).send({ error: error + "Error finding testStudent" });

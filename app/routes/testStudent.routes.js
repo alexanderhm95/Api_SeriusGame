@@ -5,6 +5,7 @@ const checkAuth = require("../utils/validators/authCheck")
 
 router.get("/",          checkAuth,   testStudentController.findAll);
 router.get("/:id",       checkAuth,   testStudentController.getTestStudent);
+router.get("/reporte/:id",         testStudentController.getTestStudentReport);
 router.put("/score/:id", checkAuth,   testStudentController.scoreUpdate);
 router.delete("/:id",    checkAuth,   testStudentController.deleteOne);
 router.delete("/",       checkAuth,   testStudentController.deleteAll);

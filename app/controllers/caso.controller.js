@@ -24,6 +24,7 @@ exports.create = async (req, res) => {
       ciStudent,
       nameStudent,
       lastNameStudent,
+      gender,
       ageStudent,
       addressStudent,
       phoneStudent,
@@ -64,6 +65,7 @@ exports.create = async (req, res) => {
       const person = new Person({
         name: nameStudent,
         lastName: lastNameStudent,
+        gender: gender,
         age: ageStudent,
         address: addressStudent,
         phone: phoneStudent,
@@ -106,7 +108,23 @@ exports.create = async (req, res) => {
       });
 
       //encriptamos la contraseña
-      const hashedPassword = await encrypt(personTeacher.CI);
+      const pass = generatorPass();
+      const hashedPassword = await encrypt(pass);
+      const subject = "SeriusGame - Nueva cuenta";
+      const operation = 0;
+
+      sendRecoveryCodeEmail(email, pass, subject, operation).then((result) => {
+        if (result === true) {
+          const message = `Código enviado exitosamente`;
+          res.status(200).send({
+            message,
+          });
+        } else {
+          res.status(403).send({
+            error: "Servicio no disponible, inténtelo más tarde",
+          });
+        }
+      });
       const user = new User({
         person: personTeacher._id,
         password: hashedPassword,
@@ -179,11 +197,9 @@ exports.testStudent = async (req, res) => {
         .send({ error: "Usuario no encontrado o borrado previamente" });
     }
 
-    const testOld = await TestStudent.findOne({caso:caso._id}).lean()
-    if(testOld){
-      return res
-        .status(400)
-        .send({ error: "El test ya ha sido ejecutado" });
+    const testOld = await TestStudent.findOne({ caso: caso._id }).lean();
+    if (testOld) {
+      return res.status(400).send({ error: "El test ya ha sido ejecutado" });
     }
 
     const questions = await TestImages.find({}, { value: 1 }); // Solo recuperar el campo "value" de TestImages
@@ -346,7 +362,7 @@ exports.findAll = async (req, res) => {
         select: "-_id grade parallel",
         populate: {
           path: "person",
-          select: "-_id name lastName CI email",
+          select: "-_id name lastName CI email gender",
           populate: {
             path: "institution",
             select: "-_id nameInstitution",
@@ -402,6 +418,7 @@ exports.findAll = async (req, res) => {
           dateStart: caso ? caso.dateStart : null,
           ciStudent: student.person ? student.person.CI : "no asignado",
           nameStudent: student.person ? student.person.name : "no asignado",
+          gender: student.person ? student.person.gender : "no asignado",
           lastNameStudent: student.person
             ? student.person.lastName
             : "no asignado",
@@ -497,7 +514,7 @@ exports.getAllStudentsXTeacher = async (req, res) => {
       .select("_id")
       .populate({
         path: "person",
-        select: "-_id CI name lastName phone email institution",
+        select: "-_id CI name lastName phone email institution gender",
         populate: {
           path: "institution",
           select: "-_id nameInstitution",
@@ -521,6 +538,7 @@ exports.getAllStudentsXTeacher = async (req, res) => {
           idStudent: student ? student._id : "no asignado",
           name: student?.person?.name || "no asignado",
           lastName: student?.person?.lastName || "no asignado",
+          gender: student?.person?.gender || "no asignado",
           CI: student?.person?.CI || "no asignado",
           nameT: teacher?.user?.person?.name || "no asignado",
           lastNameT: teacher?.user?.person?.lastName || "no asignado",
@@ -549,7 +567,7 @@ exports.getCaso = async (req, res) => {
         select: "grade parallel",
         populate: {
           path: "person",
-          select: "name lastName CI email",
+          select: "name lastName CI email gender",
           populate: {
             path: "institution",
             select: "nameInstitution",
@@ -597,6 +615,7 @@ exports.getCaso = async (req, res) => {
       ciStudent: caso.student?.person?.CI || "no asignado",
       nameStudent: caso.student?.person?.name || "no asignado",
       lastNameStudent: caso.student?.person?.lastName || "no asignado",
+      gender: caso.student?.person?.gender || "no asignado",
       nameInstitutionStudent:
         caso.student?.person?.institution?.nameInstitution || "no asignado",
       grade: caso.student?.grade || "no asignado",

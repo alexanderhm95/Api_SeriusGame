@@ -6,7 +6,8 @@ const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
 const Institution = require("../models/institution.model.js");
 const { encrypt } = require("../utils/helpers/handle.password");
-const { validateIDCard } = require("../utils/helpers/tools.js");
+const { sendRecoveryCodeEmail } = require("../../config/mail.conf");
+const { validateIDCard, generatorPass } = require("../utils/helpers/tools.js");
 
 // Create and Save a new dece
 exports.createDece = async (req, res) => {
@@ -33,10 +34,31 @@ exports.createDece = async (req, res) => {
       return res.status(400).send({ error: "Este usuario ya se encuentra registrado" });
     }
 
+    const pass =  generatorPass();
+    const hashedPassword = await encrypt(pass);
+    const subject = 'SeriusGame - Nueva cuenta'
+    const operation = 0;
+
+
+
     const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id });
-    const hashedPassword = await encrypt(CI);
     const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" });
     await Dece.create({ user: user._id });
+
+    sendRecoveryCodeEmail(email, pass , subject, operation).then((result) => {
+    if (result === true) {
+        const message = `Código enviado exitosamente`;    
+        res.status(200).send({
+          message
+        });
+      } else {
+        res.status(403).send({
+          error: "Servicio no disponible, inténtelo más tarde",
+        });
+      } 
+    });
+
+    //const hashedPassword = await encrypt(CI);
 
     res.status(201).send({ message: "DECE creado correctamente" });
   } catch (error) {
