@@ -39,25 +39,23 @@ exports.create = async (req, res) => {
 };
 
 const options = {
-  page: 1,
-  limit: 3,
+  defaultPage: 1,
+  defaultLimit: 6,
 };
 
 exports.findAllPaginated = async (req, res) => {
   try {
     const { page, limit } = req.query;
-    options.page = page ? page : 2;
-    options.limit = limit ? limit : 3;
+    const currentPage = page ? parseInt(page) : options.defaultPage;
+    const pageSize = limit ? parseInt(limit) : options.defaultLimit;
 
-    const testImages = await TestImages.paginate(
-      {},
-      options,
-      function (err, result) {
-        res.status(200).send({ message: "ok", data: result });
-      }
-    );
+    const testImages = await TestImages.paginate({}, { page: currentPage, limit: pageSize }); 
+    const totalCount = await TestImages.countDocuments();
+
+    res.status(200).json({ message: "ok", data: {testImages, totalCount} });
   } catch (error) {
-    res.status(400).send({ error: error + "Error getting TestImages" });
+    console.error("Error getting TestImages:", error);
+    res.status(400).json({ error: "Error getting TestImages" });
   }
 };
 

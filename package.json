@@ -19,6 +19,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "express-expeditious": "^5.1.1",
     "express-validator": "^6.14.2",
     "g": "^2.0.1",
     "json": "^11.0.0",

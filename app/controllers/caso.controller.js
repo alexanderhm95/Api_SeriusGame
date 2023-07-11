@@ -354,111 +354,213 @@ exports.findAll = async (req, res) => {
     const { id } = req.params;
 
     const dece = await Dece.findOne({ user: id }).lean();
-    console.log(dece);
 
-    const casos = await Caso.find({ dece: dece._id })
-      .populate({
-        path: "student",
-        select: "-_id grade parallel",
-        populate: {
-          path: "person",
-          select: "-_id name lastName CI email gender",
-          populate: {
-            path: "institution",
-            select: "-_id nameInstitution",
-          },
+    const casos = await Caso.aggregate([
+      {
+        $match: { dece: dece._id },
+      },
+      {
+        $lookup: {
+          from: "teststudents",
+          localField: "_id",
+          foreignField: "caso",
+          as: "testStudent",
         },
-      })
-      .populate({
-        path: "dece",
-        select: "-_id",
-        populate: {
-          path: "user",
-          select: "-_id role ",
-          populate: {
-            path: "person",
-            select: "-_id name lastName CI email",
-            populate: {
-              path: "institution",
-              select: "-_id nameInstitution",
+      },
+      {
+        $unwind: {
+          path: "$testStudent",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "testteachers",
+          localField: "_id",
+          foreignField: "caso",
+          as: "testTeacher",
+        },
+      },
+      {
+        $unwind: {
+          path: "$testTeacher",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "student",
+          foreignField: "_id",
+          as: "student",
+        },
+      },
+      {
+        $unwind: "$student",
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "student.person",
+          foreignField: "_id",
+          as: "student.person",
+        },
+      },
+      {
+        $unwind: "$student.person",
+      },
+      {
+        $lookup: {
+          from: "institutions",
+          localField: "student.person.institution",
+          foreignField: "_id",
+          as: "student.person.institution",
+        },
+      },
+      {
+        $unwind: {
+          path: "$student.person.institution",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "deces",
+          localField: "dece",
+          foreignField: "_id",
+          as: "dece",
+        },
+      },
+      {
+        $unwind: "$dece",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "dece.user",
+          foreignField: "_id",
+          as: "dece.user",
+        },
+      },
+      {
+        $unwind: "$dece.user",
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "dece.user.person",
+          foreignField: "_id",
+          as: "dece.user.person",
+        },
+      },
+      {
+        $unwind: "$dece.user.person",
+      },
+      {
+        $lookup: {
+          from: "institutions",
+          localField: "dece.user.person.institution",
+          foreignField: "_id",
+          as: "dece.user.person.institution",
+        },
+      },
+      {
+        $unwind: {
+          path: "$dece.user.person.institution",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "teachers",
+          localField: "teacher",
+          foreignField: "_id",
+          as: "teacher",
+        },
+      },
+      {
+        $unwind: "$teacher",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "teacher.user",
+          foreignField: "_id",
+          as: "teacher.user",
+        },
+      },
+      {
+        $unwind: "$teacher.user",
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "teacher.user.person",
+          foreignField: "_id",
+          as: "teacher.user.person",
+        },
+      },
+      {
+        $unwind: "$teacher.user.person",
+      },
+      {
+        $lookup: {
+          from: "institutions",
+          localField: "teacher.user.person.institution",
+          foreignField: "_id",
+          as: "teacher.user.person.institution",
+        },
+      },
+      {
+        $unwind: {
+          path: "$teacher.user.person.institution",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $facet: {
+          results: [
+            {
+              $project: {
+                _id: 1,
+                dateStart: 1,
+                ciStudent: "$student.person.CI",
+                nameStudent: "$student.person.name",
+                lastNameStudent: "$student.person.lastName",
+                gender: "$student.person.gender",
+                gradeStudent: "$student.grade",
+                parallelStudent: "$student.parallel",
+                nameInstitutionStudent:
+                  "$student.person.institution.nameInstitution",
+                ciDece: "$dece.user.person.CI",
+                nameDece: "$dece.user.person.name",
+                lastNameDece: "$dece.user.person.lastName",
+                ciTeacher: "$teacher.user.person.CI",
+                nameTeacher: "$teacher.user.person.name",
+                lastNameTeacher: "$teacher.user.person.lastName",
+                statusTestStudent: { $ifNull: ["$testStudent.status", false] },
+                statusTestTeacher: { $ifNull: ["$testTeacher.status", false] },
+              },
             },
-          },
+          ],
         },
-      })
-      .populate({
-        path: "teacher",
-        select: "-_id ",
-        populate: {
-          path: "user",
-          select: "-_id role ",
-          populate: {
-            path: "person",
-            select: "-_id name lastName CI email",
-            populate: {
-              path: "institution",
-              select: "-_id nameInstitution",
-            },
-          },
-        },
-      })
-      .lean();
+      },
+    ]);
 
-    console.log(casos.length);
+    console.log("Numero de casos: ", casos[0].results.length);
 
-    const listaCasos = await Promise.all(
-      casos.map(async (caso) => {
-        const student = caso.student;
-        const dece = caso.dece;
-        const teacher = caso.teacher;
-        const testStudent = await TestStudent.findOne({ caso: caso._id });
-        const testTeacher = await TestTeacher.findOne({ caso: caso._id });
+    const listaCasos = casos[0].results;
 
-        return {
-          id: caso._id,
-          dateStart: caso ? caso.dateStart : null,
-          ciStudent: student.person ? student.person.CI : "no asignado",
-          nameStudent: student.person ? student.person.name : "no asignado",
-          gender: student.person ? student.person.gender : "no asignado",
-          lastNameStudent: student.person
-            ? student.person.lastName
-            : "no asignado",
-          nameInstitutionStudent:
-            student.person && student.person.institution
-              ? student.person.institution.nameInstitution
-              : "no asignado",
-          grade: student ? student.grade : "no asignado",
-
-          parrallel: student ? student.parallel : "no asignado",
-
-          ciTeacher: teacher?.user ? teacher?.user?.person?.CI : "no asignado",
-          nameTeacher: teacher?.user
-            ? teacher.user?.person.name
-            : "no asignado",
-          lastNameTeacher: teacher?.user
-            ? teacher.user?.person.lastName
-            : "no asignado",
-          emailTeacher: teacher?.user
-            ? teacher.user?.person.email
-            : "no asignado",
-
-          ciDece: dece.user?.person ? dece.user?.person.CI : "no asignado",
-          namDece: dece.user?.person ? dece.user?.person.name : "no asignado",
-          lastNameDece: dece.user?.person
-            ? dece.user?.person.lastName
-            : "no asignado",
-          emailDece: dece.user?.person
-            ? dece.user?.person.email
-            : "no asignado",
-          statusTestStudent: testStudent ? testStudent.status : false,
-          statusTestTeacher: testTeacher ? testTeacher.status : false,
-        };
-      })
-    );
-
-    res.send({ message: "Datos extraidos correctamente", data: listaCasos });
+    res
+      .status(200)
+      .send({ message: "Datos extraídos correctamente", data: listaCasos });
+    //return res.status(200).json({
+    //  totalCount: casos[0].totalCount[0].count,
+    //  listaCasos,
+    //});
   } catch (error) {
     console.log(error);
-    res.status(500).send({ error: "Error retrieving caso" });
+    return res.status(500).json({ message: "Error al buscar los casos" });
   }
 };
 
