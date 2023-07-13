@@ -28,6 +28,7 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/api/1.0', require('./app/routes'))
 
 //morganBody permite ver las peticiones que se hacen al servidor
 morganBody(app, {
@@ -52,38 +53,38 @@ app.listen(port, () => {
 dbConnection.dbConnection();
 
 //importamos las rutas
-const personRoutes = require('./app/routes/person.routes');
-app.use('/api/1.0/person', personRoutes);
+//const personRoutes = require('./app/routes/person.routes');
+//app.use('/api/1.0/person', personRoutes);
 
-const userRoutes = require('./app/routes/user.routes');
-app.use('/api/1.0/user', userRoutes);
+//const userRoutes = require('./app/routes/user.routes');
+//app.use('/api/1.0/user', userRoutes);
 
-const studentRoutes = require('./app/routes/student.routes');
-app.use('/api/1.0/student', studentRoutes);
+//const studentRoutes = require('./app/routes/student.routes');
+//app.use('/api/1.0/student', studentRoutes);
 
-const institutionRoutes = require('./app/routes/institution.routes');
-app.use('/api/1.0/institution', institutionRoutes);
+//const institutionRoutes = require('./app/routes/institution.routes');
+//app.use('/api/1.0/institution', institutionRoutes);
 
-const deceRoutes = require('./app/routes/dece.routes');
-app.use('/api/1.0/dece', deceRoutes);
+//const deceRoutes = require('./app/routes/dece.routes');
+//app.use('/api/1.0/dece', deceRoutes);
 
-const teacherRoutes = require('./app/routes/teacher.routes');
-app.use('/api/1.0/teacher', teacherRoutes);
+//const teacherRoutes = require('./app/routes/teacher.routes');
+//app.use('/api/1.0/teacher', teacherRoutes);
 
-const authRoutes = require('./app/routes/auth.routes');
-app.use('/api/1.0/auth', authRoutes);
+//const authRoutes = require('./app/routes/auth.routes');
+//app.use('/api/1.0/auth', authRoutes);
 
-const testImagesRoutes = require('./app/routes/testImages.routes');
-app.use('/api/1.0/testImages', testImagesRoutes);
+//const testImagesRoutes = require('./app/routes/testImages.routes');
+//app.use('/api/1.0/testImages', testImagesRoutes);
 
-const testQuestionsRoutes = require('./app/routes/testQuestion.routes');
-app.use('/api/1.0/testQuestion', testQuestionsRoutes);
+//const testQuestionsRoutes = require('./app/routes/testQuestion.routes');
+//app.use('/api/1.0/testQuestion', testQuestionsRoutes);
 
-const casesRoutes = require('./app/routes/caso.routes');
-app.use('/api/1.0/caso', casesRoutes);
+//const casesRoutes = require('./app/routes/caso.routes');
+//app.use('/api/1.0/caso', casesRoutes);
 
-const testTeacherRoutes = require('./app/routes/testTeacher.routes');
-app.use('/api/1.0/testTeacher', testTeacherRoutes);
+//const testTeacherRoutes = require('./app/routes/testTeacher.routes');
+//app.use('/api/1.0/testTeacher', testTeacherRoutes);
 
-const testStudentRoutes = require('./app/routes/testStudent.routes');
-app.use('/api/1.0/testStudent', testStudentRoutes);
+//const testStudentRoutes = require('./app/routes/testStudent.routes');
+//app.use('/api/1.0/testStudent', testStudentRoutes);
