@@ -28,6 +28,8 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+//establecemos public como carpeta publica para el servidor
+app.use('/api/1.0/public', express.static(path.resolve('public')));
 app.use('/api/1.0', require('./app/routes'))
 
 //morganBody permite ver las peticiones que se hacen al servidor
@@ -39,7 +41,7 @@ morganBody(app, {
     }
 });
 //establecemos public como carpeta publica para el servidor
-app.use('/api/1.0/public', express.static(path.resolve('public')));
+//app.use('/api/1.0/public', express.static(path.resolve('public')));
 
 //definimos el puerto
 const port = process.env.PORT || 3001;
