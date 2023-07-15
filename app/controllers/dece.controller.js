@@ -26,10 +26,23 @@ exports.createDece = async (req, res) => {
       return res.status(400).send({ error: "La institución no se encuentra registrada" });
     }
 
-    const existingPerson = await User.exists({ "personData.CI": CI, "personData.email": email });
-    console.log("La persona", existingPerson);
+    const existingPerson = await User.aggregate([
+      {
+        $lookup: {
+          from: "people",
+          localField: "person",
+          foreignField: "_id",
+          as: "personData",
+        },
+      },
+      {
+        $match: {
+          $or: [{ "personData.CI": CI }, { "personData.email": email }],
+        },
+      },
+    ]);
 
-    if (existingPerson) {
+    if (existingPerson.length >0) {
       console.log("Este usuario ya se encuentra registrado");
       return res.status(400).send({ error: "Este usuario ya se encuentra registrado" });
     }
@@ -43,22 +56,16 @@ exports.createDece = async (req, res) => {
 
     const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id });
     const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" });
-    await Dece.create({ user: user._id });
+    await Dece.create({ user: user._id});
 
     sendRecoveryCodeEmail(email, pass , subject, operation).then((result) => {
     if (result === true) {
-        const message = `Código enviado exitosamente`;    
-        res.status(200).send({
-          message
-        });
+        console.log(`Código enviado exitosamente`);
       } else {
-        res.status(403).send({
-          error: "Servicio no disponible, inténtelo más tarde",
-        });
+        console.log("Servicio no disponible, inténtelo más tarde");
       } 
     });
 
-    //const hashedPassword = await encrypt(CI);
 
     res.status(201).send({ message: "DECE creado correctamente" });
   } catch (error) {

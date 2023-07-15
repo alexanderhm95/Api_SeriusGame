@@ -5,6 +5,16 @@ const Student = require("../models/student.model.js");
 const Caso = require("../models/caso.model.js");
 const Institution = require("../models/institution.model.js");
 
+
+
+
+
+
+
+
+
+
+
 exports.findAll = async (req, res) => {
   try {
     const tests = await TestTeacher.aggregate([
@@ -70,7 +80,7 @@ exports.findAll = async (req, res) => {
           "personStudentData.name": 1, // Incluir el campo "name" de "personStudentData"
           "personStudentData.lastName": 1, // Incluir el campo "name" de "personStudentData"
           "personStudentData.age": 1, // Incluir el campo "name" de "personStudentData"
-          "personStudentData.email": 1, // Incluir el campo "name" de "personStudentData"
+          "personStudentData.gender": 1, // Incluir el campo "name" de "personStudentData"
           "personTeacherData.CI": 1, // Incluir el campo "name" de "personStudentData"
           "personTeacherData.name": 1, // Incluir el campo "name" de "personStudentData"
           "personTeacherData.lastName": 1, // Incluir el campo "name" de "personStudentData"
@@ -95,7 +105,7 @@ exports.findAll = async (req, res) => {
           ciStudent: personStudent.CI,
           nameStudent: personStudent.name,
           lastNameStudent: personStudent.lastName,
-          emailStudent: personStudent.email,
+          genderStudent: personStudent.gender,
           ageStudent: personStudent.age,
           gradeStudent: student.grade,
           parallelStudent: student.parallel,

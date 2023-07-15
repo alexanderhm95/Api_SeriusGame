@@ -26,7 +26,7 @@ exports.createStudent = async (req, res) => {
       parallel,
     } = req.body;
 
-    const existingPerson = await Person.findOne({ email }).session(session);
+    const existingPerson = await Person.findOne({ CI }).session(session);
     if (existingPerson) {
       throw new Error("La persona ya está registrada");
     }
@@ -70,7 +70,7 @@ exports.getStudents = async (req, res) => {
   try {
     const students = await Student.find().populate({
       path: "person",
-      select: "CI name lastName age email phone",
+      select: "CI name lastName gender age  phone",
       populate: {
         path: "institution",
         select: "nameInstitution",
@@ -88,7 +88,7 @@ exports.getStudents = async (req, res) => {
           lastName: person ? person.lastName : "no asignado",
           gender: person ? person.gender : "no asignado",
           age: person ? person.age : "no asignado",
-          email: person ? person.email : "no asignado",
+          gender: person ? person.gender : "no asignado",
           phone: person ? person.phone : "no asignado",
           nameInstitution: institution
             ? institution.nameInstitution
@@ -117,7 +117,7 @@ exports.getStudent = async (req, res) => {
       .select("person institution grade parallel")
       .populate({
         path: "person",
-        select: "CI name lastName age email phone address gender",
+        select: "CI name lastName age  phone address gender",
         populate: {
           path: "institution",
           select: "nameInstitution",
@@ -134,11 +134,11 @@ exports.getStudent = async (req, res) => {
       CI: student.person ? student.person.CI : "no asignado",
       name: student.person ? student.person.name : "no asignado",
       lastName: student.person ? student.person.lastName : "no asignado",
-      gender: student.person ? student.person.gender : "no asignado",
+      gender: student?.person ? student.person.gender : "O",
       age: student.person ? student.person.age : "no asignado",
       address: student.person ? student.person.address : "no asignado",
       phone: student.person ? student.person.phone : "no asignado",
-      email: student.person ? student.person.email : "no asignado",
+      gender: student.person ? student.person.gender : "no asignado",
       nameInstitution: student.person.institution.nameInstitution,
       grade: student.grade,
       parallel: student.parallel,
@@ -173,7 +173,7 @@ exports.updateStudent = async (req, res) => {
       parallel,
     } = req.body;
 
-    const existingPerson = await Person.findOne({ email }).session(session);
+    const existingPerson = await Person.findOne({ CI }).session(session);
     if (!existingPerson) {
       return res.status(400).send({ error: "La persona no esta registrada" });
     }
@@ -232,7 +232,7 @@ exports.deleteStudent = async (req, res) => {
     const student = await Student.findById(studentId)
       .populate({
         path: "person",
-        select: "CI name lastName age email phone address gender",
+        select: "CI name lastName age phone address gender",
       })
       .session(session);
 
@@ -340,7 +340,7 @@ exports.loginStudent = async (req, res) => {
     })
       .populate({
         path: "person",
-        select: "CI name lastName age email phone address",
+        select: "CI name lastName age phone address",
         populate: {
           path: "institution",
           select: "nameInstitution",

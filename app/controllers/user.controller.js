@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const { validateIDCard } = require("../utils/helpers/tools.js");
+
 
 const User = require("../models/user.model");
 const Person = require("../models/person.model");
@@ -11,8 +13,13 @@ exports.createUser = async (req, res) => {
 
   try {
     //desestructuramos el body
-    const { CI, name, lastName, address, phone, email, password } =
-      req.body;
+    const { CI, name, lastName, address, phone, email, password } = req.body;
+
+    const validateCard = await validateIDCard(CI);
+    if (!validateCard) {
+      console.log("La cédula que ingresaste es inválida");
+      return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
+    }
 
     //validamos que el email no este registrado
     const existingPerson = await User.aggregate([
@@ -26,16 +33,13 @@ exports.createUser = async (req, res) => {
       },
       {
         $match: {
-          $and: [
-            { "personData.CI": CI },
-            { "personData.email": email },
-          ],
+          $or: [{ "personData.CI": CI }, { "personData.email": email }],
         },
       },
-    ])
+    ]);
 
     //si el email ya esta registrado retornamos un error
-    if (existingPerson) {
+    if (existingPerson.length > 0) {
       return res
         .status(400)
         .send({ error: "Este usuario ya se encuentra registrado" });
@@ -58,7 +62,7 @@ exports.createUser = async (req, res) => {
     await new User({
       person: newPerson._id,
       password: hashedPassword,
-      role:"ADMIN",
+      role: "ADMIN",
     }).save({ session });
 
     await session.commitTransaction();
@@ -66,9 +70,9 @@ exports.createUser = async (req, res) => {
 
     res.status(201).send({ message: "Usuario creado con éxito" });
   } catch (error) {
+    console.log(error);
     await session.abortTransaction();
     session.endSession();
-    console.log(error);
     res.status(400).send({ error: "Error al crear el usuario" });
   }
 };
@@ -76,10 +80,26 @@ exports.createUser = async (req, res) => {
 //metodo para obtener todos los usuarios de la base de datos
 exports.getUsers = async (req, res) => {
   try {
-    const user = await User.find()
+    const users = await User.find()
       .select("_id role status ")
-      .populate("person", "-_id CI email ");
-    res.status(200).send({ message: "Datos extraídos con éxito", data: user });
+      .populate("person", "-_id CI email name lastName")
+      .exec();
+
+    const userData = users.map((user) => {
+      return {
+        id: user._id,
+        CI: user.person.CI,
+        name: user.person.name,
+        lastName: user.person.lastName,
+        email: user.person.email,
+        role: user.role,
+        status: user.status,
+      };
+    });
+
+    res
+      .status(200)
+      .send({ message: "Datos extraídos con éxito", data: userData });
   } catch (error) {
     res.status(400).send({ error: "Error al obtener los usuarios" });
   }
@@ -110,8 +130,8 @@ exports.getUser = async (req, res) => {
   }
 };
 
-//metodo para actualizar un usuario de la base de datos 
-//No esta terminado 
+//metodo para actualizar un usuario de la base de datos
+//No esta terminado
 exports.updateUser = async (req, res) => {
   try {
     const { email, password, status, role } = req.body;
@@ -147,7 +167,6 @@ exports.updateUserStatus = async (req, res) => {
 
     //Si el usuario no existe retornamos un error
     if (!user) {
-      conso;
       return res.status(400).send({ error: "User not found" });
     }
 
@@ -173,11 +192,17 @@ exports.deleteUser = async (req, res) => {
   try {
     session = await mongoose.startSession();
     session.startTransaction();
-    
+
     const { id } = req.params;
 
     // Encuentra el usuario y obtén el ID de la persona asociada
-    const user = await User.findById(id).session(session);
+    const user = await User.findById(id)
+    .populate({
+      path:"person",
+      select: "_id CI "
+    })
+    .session(session);
+    console.log(user)
 
     if (!user) {
       await session.abortTransaction();
@@ -185,7 +210,7 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).send({ error: "Usuario no encontrado" });
     }
 
-    if(user.person===null){
+    if (user.person === null) {
       await User.findByIdAndDelete(id).session(session);
       await session.commitTransaction();
       session.endSession();
@@ -194,7 +219,7 @@ exports.deleteUser = async (req, res) => {
         .send({ message: "Usuario eliminado correctamente" });
     }
 
-    await Person.findByIdAndDelete(user.person).session(session);
+    await Person.findByIdAndDelete(user.person._id).session(session);
     await User.findByIdAndDelete(id).session(session);
 
     await session.commitTransaction();

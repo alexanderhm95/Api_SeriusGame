@@ -13,15 +13,12 @@ const { validateIDCard, generatorPass } = require("../utils/helpers/tools.js");
 exports.createTeacher = async (req, res) => {
   console.log(req.body);
   try {
-    const { CI, name, lastName, address, phone, email, nameInstitution } =
-      req.body;
+    const { CI, name, lastName, address, phone, email, nameInstitution } = req.body;
 
     const validateCard = await validateIDCard(CI);
     if (!validateCard) {
       console.log("La cédula que ingresaste es inválida");
-      return res
-        .status(400)
-        .send({ error: "La cédula que ingresaste es inválida" });
+      return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
     }
 
     const existingInstitution = await Institution.findOne({ nameInstitution });
@@ -29,54 +26,46 @@ exports.createTeacher = async (req, res) => {
       throw new Error("La institución no está registrada");
     }
 
-    const existingPerson = await User.exists({ "personData.CI": CI, "personData.email": email });
-    console.log("La persona", existingPerson);
+  
+    const existingPerson = await User.aggregate([
+      {
+        $lookup: {
+          from: "people",
+          localField: "person",
+          foreignField: "_id",
+          as: "personData",
+        },
+      },
+      {
+        $match: {
+          $or: [{ "personData.CI": CI }, { "personData.email": email }],
+        },
+      },
+    ]);
 
-    if (existingPerson) {
+    if (existingPerson.length >0) {
       console.log("Este usuario ya se encuentra registrado");
       return res.status(400).send({ error: "Este usuario ya se encuentra registrado" });
     }
-
-    
-
-    const newPerson = await new Person({
-      CI,
-      name,
-      lastName,
-      address,
-      phone,
-      email,
-      institution: existingInstitution._id,
-    })
-
-    const user = await new User({
-      password: hashedPassword,
-      person: newPerson._id,
-      role: "TEACHER",
-    })
-
-    await new Teacher({
-      user: user._id,
-    })
-
+   
     const pass =  generatorPass();
     const hashedPassword = await encrypt(pass);
     const subject = 'SeriusGame - Nueva cuenta'
     const operation = 0;
 
+
+
+    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id });
+    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "TEACHER" });
+    await Teacher.create({ user: user._id });
+
     sendRecoveryCodeEmail(email, pass , subject, operation).then((result) => {
-    if (result === true) {
-        const message = `Código enviado exitosamente`;    
-        res.status(200).send({
-          message,
-        });
+      if (result === true) {
+        console.log(`Código enviado exitosamente`);
       } else {
-        res.status(403).send({
-          error: "Servicio no disponible, inténtelo más tarde",
-        });
+        console.log("Servicio no disponible, inténtelo más tarde");
       } 
     });
-
     
 
     res.status(201).send({ message: "Docente creado exitosamente" });
@@ -156,21 +145,21 @@ exports.getTeacher = async (req, res) => {
 
     const teacherData = {
       id: teacher._id,
-      CI: teacher.user.person ? teacher.user.person.CI : "no asignado",
-      name: teacher.user.person ? teacher.user.person.name : "no asignado",
-      lastName: teacher.user.person
+      CI: teacher.user?.person ? teacher.user.person.CI : "no asignado",
+      name: teacher.user?.person ? teacher.user.person.name : "no asignado",
+      lastName: teacher.user?.person
         ? teacher.user.person.lastName
         : "no asignado",
-      address: teacher.user.person
+      address: teacher.user?.person
         ? teacher.user.person.address
         : "no asignado",
-      phone: teacher.user.person ? teacher.user.person.phone : "no asignado",
-      email: teacher.user.person ? teacher.user.person.email : "no asignado",
-      nameInstitution: teacher.user.person.institution
-        ? teacher.user.person.institution.nameInstitution
+      phone: teacher.user?.person ? teacher.user.person.phone : "no asignado",
+      email: teacher.user?.person ? teacher.user.person.email : "no asignado",
+      nameInstitution: teacher.user?.person?.institution
+        ? teacher.user?.person?.institution?.nameInstitution
         : "no asignado",
-      role: teacher.user ? teacher.user.role : "no asignado",
-      status: teacher.user ? teacher.user.status : "no asignado",
+      role: teacher?.user ? teacher.user.role : "no asignado",
+      status: teacher?.user ? teacher.user.status : "no asignado",
     };
 
     res
@@ -251,6 +240,7 @@ exports.updateTeacher = async (req, res) => {
   }
 };
 
+// Delete a teacher with the specified teacherId in the request
 exports.deleteTeacher = async (req, res) => {
   let session;
 
@@ -282,21 +272,17 @@ exports.deleteTeacher = async (req, res) => {
 
     if (teacher.user.person === null && casoCount === 0) {
       await User.findByIdAndRemove(teacher.user._id).session(session);
-      await Teacher.findByIdAndRemove(teacherId).session(session);
+      await Teacher.findByIdAndRemove(deacherId).session(session);
       await session.commitTransaction();
       session.endSession();
-      return res
-        .status(200)
-        .send({ message: "Docente eliminado correctamente" });
+      return res.status(200).send({ message: "Docente eliminado correctamente" });
     }
 
     if (teacher.user === null && casoCount === 0) {
       await Teacher.findByIdAndRemove(teacherId).session(session);
       await session.commitTransaction();
       session.endSession();
-      return res
-        .status(200)
-        .send({ message: "Docente eliminado correctamente" });
+      return res.status(200).send({ message: "Docente eliminado correctamente" });
     }
 
     if (casoCount > 0) {
@@ -307,9 +293,7 @@ exports.deleteTeacher = async (req, res) => {
         .send({ error: `El docente tiene ${casoCount} casos asociados` });
     }
 
-    await Person.findOneAndRemove({ CI: teacher.user.person.CI }).session(
-      session
-    );
+    await Person.findOneAndRemove({ CI: teacher.user.person.CI }).session(session);
     await User.findByIdAndRemove(teacher.user._id).session(session);
     await Teacher.findByIdAndRemove(teacherId).session(session);
 
