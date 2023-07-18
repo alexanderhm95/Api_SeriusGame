@@ -11,7 +11,7 @@ const bodyParser = require('body-parser');
 //permite resolver errores de origen cruzado
 const cors = require('cors');
 //importa la conexión a la base de datos
-const dbConnection = require('./config/mongo.conf');
+const  { dbConnection, dbConnection2 } = require('./config/mongo.conf');
 //permite manejar las rutas
 const path = require('path');
 //crea el servidor
@@ -52,41 +52,4 @@ app.listen(port, () => {
 });
 
 //inicializamos la conexión a la base de datos
-dbConnection.dbConnection();
-
-//importamos las rutas
-//const personRoutes = require('./app/routes/person.routes');
-//app.use('/api/1.0/person', personRoutes);
-
-//const userRoutes = require('./app/routes/user.routes');
-//app.use('/api/1.0/user', userRoutes);
-
-//const studentRoutes = require('./app/routes/student.routes');
-//app.use('/api/1.0/student', studentRoutes);
-
-//const institutionRoutes = require('./app/routes/institution.routes');
-//app.use('/api/1.0/institution', institutionRoutes);
-
-//const deceRoutes = require('./app/routes/dece.routes');
-//app.use('/api/1.0/dece', deceRoutes);
-
-//const teacherRoutes = require('./app/routes/teacher.routes');
-//app.use('/api/1.0/teacher', teacherRoutes);
-
-//const authRoutes = require('./app/routes/auth.routes');
-//app.use('/api/1.0/auth', authRoutes);
-
-//const testImagesRoutes = require('./app/routes/testImages.routes');
-//app.use('/api/1.0/testImages', testImagesRoutes);
-
-//const testQuestionsRoutes = require('./app/routes/testQuestion.routes');
-//app.use('/api/1.0/testQuestion', testQuestionsRoutes);
-
-//const casesRoutes = require('./app/routes/caso.routes');
-//app.use('/api/1.0/caso', casesRoutes);
-
-//const testTeacherRoutes = require('./app/routes/testTeacher.routes');
-//app.use('/api/1.0/testTeacher', testTeacherRoutes);
-
-//const testStudentRoutes = require('./app/routes/testStudent.routes');
-//app.use('/api/1.0/testStudent', testStudentRoutes);
+dbConnection();
