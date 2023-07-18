@@ -10,6 +10,7 @@ router.get('/',        checkAuth(['ADMIN']), userController.getUsers);
 router.get('/:id',     checkAuth(['ADMIN']), userController.getUser);
 router.put('/:id',     checkAuth(['ADMIN']), userController.updateUser);
 router.post('/status', checkAuth(['ADMIN']), userController.updateUserStatus);
+router.post('/pass', checkAuth(['ADMIN']), userController.changePasswordUser);
 router.delete('/:id',  checkAuth(['ADMIN']), userController.deleteUser);
 
 module.exports = router;

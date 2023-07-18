@@ -48,6 +48,7 @@ async function sendRecoveryCodeEmail(email, data, subject, operation) {
             `,
           });
         }
+
         if(operation===1){
           await transporter.sendMail({
             from: `"SeriusGame" <${process.env.MAIL_USER}>`,
@@ -66,6 +67,31 @@ async function sendRecoveryCodeEmail(email, data, subject, operation) {
                   <p style="text-align: center; color: #666666;">Ingrese este código en el formulario de recuperación de contraseña.</p>
                   <p style="text-align: center; color: #666666;">Si no solicitó este código de recuperación, puede ignorar este correo electrónico.</p>
                   <p style="text-align: center; color: #666666;">Gracias,</p>
+                  <p style="text-align: center; color: #666666;">El equipo de SeriusGame</p>
+                </div>
+              </div>
+            `,
+          });
+        }
+
+        if(operation===3){
+          await transporter.sendMail({
+            from: `"SeriusGame" <${process.env.MAIL_USER}>`,
+            to: email,
+            subject: subject,
+            html: `
+              <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+                <div style="background-color: #ffffff; border-radius: 10px; padding: 20px;">
+                  <h2 style="text-align: center; color: #333333;">Bienvenido(a) a SeriusGame</h2>
+                  <p style="text-align: center; color: #666666;">Estimado(a) usuario(a),</p>
+                  <p style="text-align: center; color: #666666;">Le saludamos desde el soporte de SeriusGame. Su solicitud de renovación se ha realizado satisfactoriamente.</p>
+                  <p style="text-align: center; color: #666666;">A continuación, encontrará los detalles de  acceso a su cuenta:</p>
+                  <ul style="list-style-type: none; padding: 0; text-align: center;">
+                    <li><strong>Usuario:</strong> ${email}</li>
+                    <li><strong>Contraseña de acceso:</strong> ${data}</li>
+                  </ul>
+                  <p style="text-align: center; color: #666666;">Recuerde mantener su contraseña segura y no compartirla con nadie.</p>
+                  <p style="text-align: center; color: #666666;">Gracias por contactarse con SeriusGame.</p>
                   <p style="text-align: center; color: #666666;">El equipo de SeriusGame</p>
                 </div>
               </div>
