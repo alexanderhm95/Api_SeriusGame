@@ -19,8 +19,9 @@ exports.create = async (req, res) => {
       section: testImages.section,
     });
     const countSection = await TestImages.find({section:test.section}).lean()
-    if(countSection.lenght > 3){
-    res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
+    console.log("Num: ",countSection.length)
+    if(countSection.length > 3){
+    return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
 }
     srcImageTmp = test.link;
     await test.save();
