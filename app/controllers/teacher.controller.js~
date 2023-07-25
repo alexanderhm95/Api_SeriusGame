@@ -120,60 +120,8 @@ exports.getTeachers = async (req, res) => {
     res.status(400).send(error + "Error al obtener los docentes");
   }
 };
-exports.getTeachersCasos = async (req, res) => {
-  try {
-    const { data } = req.body;
-    const teachers = await Teacher.find().populate({
-      path: "user",
-      select: "-_id role status",
-      populate: {
-        path: "person",
-        select: "-_id CI name lastName phone email institution",
-        populate: {
-          path: "institution",
-          select: "-_id nameInstitution",
-        },
-      },
-    });
-
-    const filteredTeachers = teachers.filter((teacher) => {
-      return teacher.user.person.institution.nameInstitution === data;
-    });
-
-
-    const listaTeacher = await Promise.all(
-      filteredTeachers.map(async (teacher) => {
-        const user = teacher.user;
-        const person = user?.person;
-        const institution = person?.institution;
-        return {
-          id: teacher._id,
-          CI: person ? person.CI : "no asignado",
-          name: person ? person.name : "no asignado",
-          lastName: person ? person.lastName : "no asignado",
-          phone: person ? person.phone : "no asignado",
-          email: person ? person.email : "no asignado",
-          nameInstitution: institution
-            ? person.institution.nameInstitution
-            : "no asignado",
-          role: user ? user.role : "no asignado",
-          status: user ? user.status : "no asignado",
-        };
-      })
-    );
-
-    res.status(200).send({
-      message: "Datos docente obtenidos exitosamente",
-      data: listaTeacher,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(400).send(error + "Error al obtener los docentes");
-  }
-};
 
 exports.getTeacher = async (req, res) => {
-console.log("llegue..")
   try {
     const { id } = req.params;
     const teacher = await Teacher.findById(id)

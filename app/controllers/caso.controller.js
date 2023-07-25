@@ -28,15 +28,9 @@ exports.create = async (req, res) => {
       ageStudent,
       addressStudent,
       phoneStudent,
-      emailStudent,
       gradeStudent,
       parallelStudent,
       ciTeacher,
-      nameTeacher,
-      lastNameTeacher,
-      addressTeacher,
-      phoneTeacher,
-      emailTeacher,
       nameInstitution,
       idDece,
     } = req.body;
@@ -69,7 +63,6 @@ exports.create = async (req, res) => {
         age: ageStudent,
         address: addressStudent,
         phone: phoneStudent,
-        email: emailStudent,
         CI: ciStudent,
         institution: institution._id,
       });
@@ -96,50 +89,6 @@ exports.create = async (req, res) => {
       }
     }
 
-    if (!teacher) {
-      const personTeacher = new Person({
-        name: nameTeacher,
-        lastName: lastNameTeacher,
-        address: addressTeacher,
-        phone: phoneTeacher,
-        email: emailTeacher,
-        CI: ciTeacher,
-        institution: institution._id,
-      });
-
-      //encriptamos la contraseña
-      const pass = generatorPass();
-      const hashedPassword = await encrypt(pass);
-      const subject = "SeriusGame - Nueva cuenta";
-      const operation = 0;
-
-      sendRecoveryCodeEmail(email, pass, subject, operation).then((result) => {
-        if (result === true) {
-          const message = `Código enviado exitosamente`;
-          res.status(200).send({
-            message,
-          });
-        } else {
-          res.status(403).send({
-            error: "Servicio no disponible, inténtelo más tarde",
-          });
-        }
-      });
-      const user = new User({
-        person: personTeacher._id,
-        password: hashedPassword,
-        role: "TEACHER",
-      });
-
-      teacher = new Teacher({
-        user: user._id,
-      });
-
-      await personTeacher.save({ session });
-      await user.save({ session });
-      await teacher.save({ session });
-    }
-
     const dece = await Dece.findOne({ user: idDece }).session(session);
 
     const caso = await new Caso({
@@ -160,6 +109,100 @@ exports.create = async (req, res) => {
     res.status(400).send({ error: "Error creating Caso" });
   }
 };
+
+exports.update = async (req, res) => {
+  console.log(req.body);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const {
+      ciStudent,
+      nameStudent,
+      lastNameStudent,
+      gender,
+      ageStudent,
+      addressStudent,
+      phoneStudent,
+      gradeStudent,
+      parallelStudent,
+      ciTeacher,
+    } = req.body;
+
+    // Actualizar información del estudiante
+    const personStudent = await Person.findOneAndUpdate(
+      { CI: ciStudent },
+      {
+        $set: {
+          name: nameStudent,
+          lastName: lastNameStudent,
+          gender,
+          age: ageStudent,
+          address: addressStudent,
+          phone: phoneStudent,
+        },
+      },
+      { new: true, session }
+    );
+
+    // Actualizar información del estudiante en la colección Student
+    await Student.findOneAndUpdate(
+      { person: personStudent._id },
+      { $set: { grade: gradeStudent, parallel: parallelStudent } },
+      { new: true, session }
+    );
+
+    const newTeacher = await Teacher.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userTeacherData",
+        },
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "userTeacherData.person",
+          foreignField: "_id",
+          as: "personaTeacherData",
+        },
+      },
+      {
+        $match: {
+          "personaTeacherData.CI": ciTeacher,
+        },
+      },
+    ]);
+    
+    if (newTeacher.length > 0) {
+      console.log(newTeacher[0]);
+    } else {
+      console.log("Profesor no encontrado");
+    }
+
+    // Actualizar el profesor del caso
+    await Caso.findByIdAndUpdate(
+      id,
+      { teacher: newTeacher[0]._id },
+      { new: true, session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).send({ message: "Caso actualizado exitosamente" });
+  } catch (error) {
+    console.log(error);
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).send({ error: "Error al actualizar el caso" });
+  }
+};
+
 
 exports.testStudent = async (req, res) => {
   console.log(req.body);
@@ -538,6 +581,8 @@ exports.findAll = async (req, res) => {
                 ciTeacher: "$teacher.user.person.CI",
                 nameTeacher: "$teacher.user.person.name",
                 lastNameTeacher: "$teacher.user.person.lastName",
+                nameInstitutionTeacher:
+                  "$teacher.user.person.institution.nameInstitution",
                 statusTestStudent: { $ifNull: ["$testStudent.status", false] },
                 statusTestTeacher: { $ifNull: ["$testTeacher.status", false] },
               },
@@ -554,10 +599,7 @@ exports.findAll = async (req, res) => {
     res
       .status(200)
       .send({ message: "Datos extraídos correctamente", data: listaCasos });
-    //return res.status(200).json({
-    //  totalCount: casos[0].totalCount[0].count,
-    //  listaCasos,
-    //});
+
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Error al buscar los casos" });
@@ -659,7 +701,8 @@ exports.getAllStudentsXTeacher = async (req, res) => {
   }
 };
 
-exports.getCaso = async (req, res) => {
+exports.getReporte = async (req, res) => {
+  console.log("llegue al reporte")
   const { id } = req.params;
 
   try {
@@ -741,6 +784,87 @@ exports.getCaso = async (req, res) => {
       diagnosticTeacher: testTeacher?.diagnostic || "no asignado",
       scoreMaxTeacher: testTeacher?.scoreMax || null,
       scoreTeacher: testTeacher?.score || null,
+    };
+
+    res.send({ message: "Caso encontrado", data: casoData });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ error: "Error al buscar el caso" });
+  }
+};
+
+exports.getCaso = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const caso = await Caso.findById(id)
+      .populate({
+        path: "student",
+        select: "grade parallel",
+        populate: {
+          path: "person",
+          select: "name lastName CI address gender age phone",
+          populate: {
+            path: "institution",
+            select: "nameInstitution",
+          },
+        },
+      })
+      .populate({
+        path: "dece",
+        select: "",
+        populate: {
+          path: "user",
+          select: "role",
+          populate: {
+            path: "person",
+            select: "name lastName CI email",
+          },
+        },
+      })
+      .populate({
+        path: "teacher",
+        select: "",
+        populate: {
+          path: "user",
+          select: "role",
+          populate: {
+            path: "person",
+            select: "name lastName CI email",
+          },
+        },
+      })
+      .lean();
+
+    if (!caso) {
+      return res.status(404).send({ error: "Caso no encontrado" });
+    }
+
+ 
+
+    const casoData = {
+      id: caso._id,
+      dateStart: caso.dateStart || null,
+      ciStudent: caso.student?.person?.CI || "no asignado",
+      nameStudent: caso.student?.person?.name || "no asignado",
+      lastNameStudent: caso.student?.person?.lastName || "no asignado",
+      addressStudent: caso.student?.person?.address || "no asignado",
+      phoneStudent: caso.student?.person?.phone || "no asignado",
+      ageStudent: caso.student?.person?.age || "no asignado",
+      gender: caso.student?.person?.gender || "no asignado",
+      nameInstitutionStudent:
+        caso.student?.person?.institution?.nameInstitution || "no asignado",
+      grade: caso.student?.grade || "no asignado",
+      parallel: caso.student?.parallel || "no asignado",
+      ciTeacher: caso.teacher?.user?.person?.CI || "no asignado",
+      nameTeacher: caso.teacher?.user?.person?.name || "no asignado",
+      lastNameTeacher: caso.teacher?.user?.person?.lastName || "no asignado",
+      emailTeacher: caso.teacher?.user?.person?.email || "no asignado",
+      ciDece: caso.dece?.user?.person?.CI || "no asignado",
+      nameDece: caso.dece?.user?.person?.name || "no asignado",
+      lastNameDece: caso.dece?.user?.person?.lastName || "no asignado",
+      emailDece: caso.dece?.user?.person?.email || "no asignado",
+
     };
 
     res.send({ message: "Caso encontrado", data: casoData });
