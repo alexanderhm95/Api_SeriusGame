@@ -19,7 +19,7 @@ exports.create = async (req, res) => {
       section: testImages.section,
     });
     const countSection = await TestImages.find({section:test.section}).lean()
-    console.log("Num: ",countSection.length)
+    
     if(countSection.length >= 3){
     return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
 }
@@ -54,10 +54,14 @@ exports.findAllPaginated = async (req, res) => {
     const currentPage = page ? parseInt(page) : options.defaultPage;
     const pageSize = limit ? parseInt(limit) : options.defaultLimit;
 
-    const testImages = await TestImages.paginate({}, { page: currentPage, limit: pageSize }); 
+    // Ordenar por el atributo "section" en orden ascendente (1) o descendente (-1)
+    const sortOptions = { section: 1 }; // Cambia a -1 para ordenar descendente
+
+    // Obtener los datos ordenados por "section"
+    const testImages = await TestImages.find().sort(sortOptions).skip((currentPage - 1) * pageSize).limit(pageSize);
     const totalCount = await TestImages.countDocuments();
 
-    res.status(200).json({ message: "ok", data: {testImages, totalCount} });
+    res.status(200).json({ message: "ok", data: { testImages, totalCount } });
   } catch (error) {
     console.error("Error getting TestImages:", error);
     res.status(400).json({ error: "Error getting TestImages" });
@@ -102,7 +106,11 @@ exports.update = async (req, res) => {
       value: testImages.value,
       section: testImages.section,
     };
-
+  const countSection = await TestImages.find({section:test.section}).lean()
+    
+    if((countSection.length-1) >= 3){
+    return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
+}
     const updatedTestImages = await TestImages.findByIdAndUpdate(
       req.params.id,
       test,
