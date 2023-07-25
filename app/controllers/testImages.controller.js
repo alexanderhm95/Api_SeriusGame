@@ -54,21 +54,10 @@ exports.findAllPaginated = async (req, res) => {
     const currentPage = page ? parseInt(page) : options.defaultPage;
     const pageSize = limit ? parseInt(limit) : options.defaultLimit;
 
-    // Validar currentPage para asegurarse de que no sea menor que 1
-    const validPage = Math.max(currentPage, 1);
-
-    // Ordenar por el atributo "section" en orden ascendente (1) o descendente (-1)
-    const sortOptions = { section: 1 }; // Cambia a -1 para ordenar descendente
-
-    // Obtener los datos ordenados por "section" y paginados
-    const testImages = await TestImages.find()
-      .sort(sortOptions)
-      .skip((validPage - 1) * pageSize)
-      .limit(pageSize);
-
+    const testImages = await TestImages.paginate({}, { page: currentPage, limit: pageSize }); 
     const totalCount = await TestImages.countDocuments();
 
-    res.status(200).json({ message: "ok", data: { testImages, totalCount } });
+    res.status(200).json({ message: "ok", data: {testImages, totalCount} });
   } catch (error) {
     console.error("Error getting TestImages:", error);
     res.status(400).json({ error: "Error getting TestImages" });
