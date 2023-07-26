@@ -2,126 +2,78 @@ const TestTeacher = require("../models/testTeacher.model.js");
 const Person = require("../models/person.model.js");
 const Teacher = require("../models/teacher.model.js");
 const Student = require("../models/student.model.js");
+const Dece = require("../models/dece.model.js");
 const Caso = require("../models/caso.model.js");
+const User = require("../models/user.model.js");
 const Institution = require("../models/institution.model.js");
-
-
-
-
-
-
-
-
-
-
 
 exports.findAll = async (req, res) => {
   try {
-    const tests = await TestTeacher.aggregate([
-      {
-        $lookup: {
-          from: "casos",
-          localField: "caso",
-          foreignField: "_id",
-          as: "casoData",
-        },
-      },
-      {
-        $lookup: {
-          from: "students",
-          localField: "casoData.student",
-          foreignField: "_id",
-          as: "studentData",
-        },
-      },
-      {
-        $lookup: {
-          from: "people",
-          localField: "studentData.person",
-          foreignField: "_id",
-          as: "personStudentData",
-        },
-      },
-      {
-        $lookup: {
-          from: "teachers",
-          localField: "casoData.teacher",
-          foreignField: "_id",
-          as: "teacherData",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "teacherData.user",
-          foreignField: "_id",
-          as: "userTeacherData",
-        },
-      },
-      {
-        $lookup: {
-          from: "people",
-          localField: "userTeacherData.person",
-          foreignField: "_id",
-          as: "personTeacherData",
-        },
-      },
-      {
-        $project: {
-          _id: 1, // Incluir el campo _id,
-          scoreMax: 1, // Incluir el campo scoreMax
-          score: 1, // Incluir el campo score
-          diagnostic: 1, // Incluir el campo diagnostic
-          status: 1, // Incluir el campo status
-          createdAt: 1, //Incluir fechas de creacion
-          "studentData.grade": 1, // Incluir el campo "student" de "casoData"
-          "studentData.parallel": 1, // Incluir el campo "student" de "casoData"
-          "personStudentData.CI": 1, // Incluir el campo "name" de "personStudentData"
-          "personStudentData.name": 1, // Incluir el campo "name" de "personStudentData"
-          "personStudentData.lastName": 1, // Incluir el campo "name" de "personStudentData"
-          "personStudentData.age": 1, // Incluir el campo "name" de "personStudentData"
-          "personStudentData.gender": 1, // Incluir el campo "name" de "personStudentData"
-          "personTeacherData.CI": 1, // Incluir el campo "name" de "personStudentData"
-          "personTeacherData.name": 1, // Incluir el campo "name" de "personStudentData"
-          "personTeacherData.lastName": 1, // Incluir el campo "name" de "personStudentData"
-          "personTeacherData.email": 1, // Incluir el campo "name" de "personStudentData"
-        },
-      },
+    console.log(req.params);
+    const { id } = req.params;
+
+    // Realizar múltiples consultas en paralelo para mejorar el rendimiento
+    const [user, dece] = await Promise.all([
+      User.findById(id),
+      Dece.findOne({ user: id }),
     ]);
-    console.log(tests);
 
-    const listTests = await Promise.all(
-      tests.map(async (test) => {
-        const student = test.studentData[0];
-        const personStudent = test.personStudentData[0];
-        const personTeacher = test.personTeacherData[0];
-
-        return {
-          id: test._id,
-          scoreMax: test.scoreMax,
-          score: test.score,
-          diagnostic: test.diagnostic,
-          statusTestTeacher: test.status ? test.status : false,
-          ciStudent: personStudent.CI,
-          nameStudent: personStudent.name,
-          lastNameStudent: personStudent.lastName,
-          genderStudent: personStudent.gender,
-          ageStudent: personStudent.age,
-          gradeStudent: student.grade,
-          parallelStudent: student.parallel,
-          ciTeacher: personTeacher.CI,
-          nameTeacher: personTeacher.name,
-          lastNameTeacher: personTeacher.lastName,
-          emailTeacher: personTeacher.email,
-          createAt: test.createdAt,
-        };
+    const casos = await Caso.find({ dece })
+      .populate({
+        path: "student",
+        populate: {
+          path: "person",
+          select: "CI name lastName",
+        },
       })
-    );
+      .populate({
+        path: "teacher",
+        populate: {
+          path: "user",
+          populate: {
+            path: "person",
+            select: "CI name lastName",
+          },
+        },
+      }).lean();
+
+      const listTests = await Promise.all(
+        casos.map(async (test) => {
+          const student = test.student.person;
+          const teacher = test.teacher.user.person;
+          const testTeacher = await TestTeacher.findOne({ caso: test._id });
+      
+          // Si testTeacher es null, no lo incluimos en el resultado
+          if (!testTeacher) {
+            return null;
+          }
+      
+          return {
+            id: testTeacher._id ? testTeacher._id : null,
+            scoreMax: testTeacher.scoreMax ? testTeacher.scoreMax : 0,
+            score: testTeacher.score ? testTeacher.score : 0,
+            statusTestTeacher: testTeacher.status ? testTeacher.status : false,
+            ciStudent: student.CI,
+            nameStudent: student.name,
+            lastNameStudent: student.lastName,
+            ciTeacher: teacher.CI,
+            nameTeacher: teacher.name,
+            lastNameTeacher: teacher.lastName,
+            createAt: testTeacher.createdAt ? testTeacher.createdAt : null,
+          };
+        })
+      );
+      
+      // Filtrar cualquier objeto nulo que haya quedado en el array
+      const filteredListTests = listTests.filter((test) => test !== null);
+      
+      
 
     res
       .status(200)
-      .send({ message: "Datos obtenidos correctamente", data: listTests });
+      .send({ message: "Datos obtenidos correctamente", data: filteredListTests });
   } catch (error) {
+    console.log(error);
     res.status(400).send({ error: error + "Error finding testTeacher" });
   }
 };

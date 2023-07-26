@@ -6,6 +6,7 @@ const User = require("../models/user.model");
 const Person = require("../models/person.model");
 const Teacher = require("../models/teacher.model");
 const Dece = require("../models/dece.model");
+const Caso = require("../models/caso.model");
 const { encrypt } = require("../utils/helpers/handle.password");
 
 //metodo para crear un usuario en la base de datos Listo
@@ -296,11 +297,25 @@ exports.deleteUser = async (req, res) => {
     }
     const teacherFind = await Teacher.findOne({user:user._id}).session(session);
     if(teacherFind){
+        const casoCount = await Caso.countDocuments({ teacher: teacherFind._id }).session(session);
+        if(casoCount === 0){ 
         await Teacher.findByIdAndDelete(teacherFind._id).session(session);
+}else{
+return res
+        .status(400)
+        .send({ error: "El Docente tiene casos asignados" });
+}
     }
     const deceFind = await Dece.findOne({user:user._id}).session(session);
 if(deceFind){
+        const casoCount = await Caso.countDocuments({ dece: deceFind._id }).session(session);
+        if(casoCount === 0){ 
         await Dece.findByIdAndDelete(deceFind._id).session(session);
+}else{
+return res
+        .status(400)
+        .send({ error: "El Dece tiene casos asignados" });
+}
     }
     await Person.findByIdAndDelete(user.person._id).session(session);
     await User.findByIdAndDelete(id).session(session);

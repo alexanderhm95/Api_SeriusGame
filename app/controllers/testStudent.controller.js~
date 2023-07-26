@@ -1,11 +1,11 @@
 const TestStudent = require("../models/testStudent.model.js");
+const TestTeacher = require("../models/testTeacher.model.js");
 const Person = require("../models/person.model.js");
 const Teacher = require("../models/teacher.model.js");
-const Student = require("../models/student.model.js");
 const Dece = require("../models/dece.model.js");
-const Caso = require("../models/caso.model.js");
-const User = require("../models/user.model.js");
+const Student = require("../models/student.model.js");
 const Institution = require("../models/institution.model.js");
+const Case = require("../models/caso.model.js");
 const PdfPrinter = require("pdfmake");
 const fs = require("fs");
 const path = require("path");
@@ -44,39 +44,40 @@ exports.findAll = async (req, res) => {
           },
         },
       }).lean();
-
+    
     const listTests = await Promise.all(
-      casos.map(async (test) => {
+      tests.map(async (test) => {
         const student = test.student.person;
-        const dece = test.dece.user.person;
+        const dece = test.dece.person;
         const testStudent = await TestStudent.findOne({ caso: test._id });
-        if (!testStudent) {
-          return null;
-        }
-       return {
-            id: testStudent._id ? testStudent._id : null,
-            scoreMax: testStudent.scoreMax ? testStudent.scoreMax : 0,
-            score: testStudent.score ? testStudent.score : 0,
-            statusTestStudent: testStudent.status ? testStudent.status : false,
-            scoreEvaluator:testStudent.scoreEvaluator ? testStudent.scoreEvaluator : 0,
-            ciStudent: student.CI,
-            nameStudent: student.name,
-            lastNameStudent: student.lastName,
-            ciDece: dece.CI,
-            nameDece: dece.name,
-            lastNameDece: dece.lastName,
-            createAt: testStudent.createdAt ? testStudent.createdAt : null,
-          };
+
+        return {
+          id: test._id,
+          scoreMax: test.scoreMax,
+          score: test.score,
+          scoreEvaluator: test.scoreEvaluator,
+          diagnostic: test.diagnostic,
+          statusTestStudent: test.status ? test.status : false,
+          dateAplication: test.createdAt,
+          ciStudent: personStudent.CI,
+          nameStudent: personStudent.name,
+          lastNameStudent: personStudent.lastName,
+          gender: personStudent.gender,
+          ageStudent: personStudent.age,
+          gradeStudent: student.grade,
+          parallelStudent: student.parallel,
+          ciDece: personDece.CI,
+          nameDece: personDece.name,
+          lastNameDece: personDece.lastName,
+          emailDece: personDece.email,
+          createAt: test.createdAt,
+        };
       })
     );
 
-
-      // Filtrar cualquier objeto nulo que haya quedado en el array
-      const filteredListTests = listTests.filter((test) => test !== null);
-
     res
       .status(200)
-      .send({ message: "Datos obtenidos correctamente", data: filteredListTests });
+      .send({ message: "Datos obtenidos correctamente", data: listTests });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error + "Error finding testStudent" });
