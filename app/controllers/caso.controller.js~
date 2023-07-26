@@ -639,7 +639,7 @@ exports.getAllStudentsXTeacher = async (req, res) => {
       .exec();
 
     if (casoIds.length === 0) {
-      return res.status(200).send({ message: "No hay casos asignados" });
+      return res.status(404).send({ message: "No hay casos asignados" });
     }
 
     const casoPromises = casoIds.map((caso) => {
