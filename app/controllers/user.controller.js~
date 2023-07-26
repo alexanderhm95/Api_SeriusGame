@@ -299,9 +299,6 @@ exports.deleteUser = async (req, res) => {
         await Teacher.findByIdAndDelete(teacherFind._id).session(session);
     }
     const deceFind = await Dece.findOne({user:user._id}).session(session);
-if(deceFind){
-        await Dece.findByIdAndDelete(deceFind._id).session(session);
-    }
     await Person.findByIdAndDelete(user.person._id).session(session);
     await User.findByIdAndDelete(id).session(session);
 
