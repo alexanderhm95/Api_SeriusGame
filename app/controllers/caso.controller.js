@@ -57,7 +57,7 @@ exports.create = async (req, res) => {
     }
 
     //Comprueba si el estudiante ya ha sido registrado
-    const personStudent = await Student.findOne({ CI: ciStudent }).session(session);
+    const personStudent = await Person.findOne({ CI: ciStudent }).session(session);
 
     //devuelve una alerta si el estudiante ya esta registrado
     if (personStudent) {
@@ -65,7 +65,6 @@ exports.create = async (req, res) => {
       session.endSession();
       return res.status(400).send({ error: "El estudiante ya se encuentra registrado" });
     }
-
     //Crea la persona 
     const person = new Person({
       name: nameStudent,
@@ -90,29 +89,40 @@ exports.create = async (req, res) => {
     await student.save({ session });
   
 
+  
     let teacher = await Teacher.aggregate([
-        {
-          $lookup: {
-            from: "users",
-            localField: "user",
-            foreignField: "_id",
-            as: "userData",
-          },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userData",
         },
-        {
-          $lookup: {
-            from: "persons",
-            localField: "userData.person",
-            foreignField: "_id",
-            as: "personData",
-          },
+      },
+      {
+        $unwind: "$userData"
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "userData.person",
+          foreignField: "_id",
+          as: "personData",
         },
-        {
-          $match: {
-            "personData.CI": ciTeacher,
-          },
+      },
+      {
+        $unwind: {
+          path: "$personData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $match: {
+          "personData.CI": ciTeacher,
         },
-      ]).session(session);
+      },
+    ]).session(session);
+
 
 
     const teacherFound = teacher.length > 0 ? teacher[0] : null;
@@ -287,7 +297,7 @@ exports.testStudent = async (req, res) => {
       return res.status(400).send({ error: "El test ya ha sido ejecutado" });
     }
 
-    const questions = await TestImages.find({}, { value: 1 }); // Solo recuperar el campo "value" de TestImages
+    const questions = await TestImages.find({ section: { $ne: 0 } }, { value: 1 });
     const scoreMax = questions.reduce(
       (total, question) => total + question.value,
       0
