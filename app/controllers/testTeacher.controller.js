@@ -39,8 +39,8 @@ exports.findAll = async (req, res) => {
 
       const listTests = await Promise.all(
         casos.map(async (test) => {
-          const student = test.student.person;
-          const teacher = test.teacher.user.person;
+          const student = test?.student?.person;
+          const teacher = test?.teacher?.user?.person;
           const testTeacher = await TestTeacher.findOne({ caso: test._id });
       
           // Si testTeacher es null, no lo incluimos en el resultado

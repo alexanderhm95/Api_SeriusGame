@@ -47,8 +47,8 @@ exports.findAll = async (req, res) => {
 
     const listTests = await Promise.all(
       casos.map(async (test) => {
-        const student = test.student.person;
-        const dece = test.dece.user.person;
+        const student = test?.student?.person;
+        const dece = test?.dece?.user?.person;
         const testStudent = await TestStudent.findOne({ caso: test._id });
         if (!testStudent) {
           return null;
