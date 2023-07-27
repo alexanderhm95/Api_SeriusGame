@@ -12,6 +12,7 @@ const TestQuestion = require("../models/testQuestion.model.js");
 const TestImages = require("../models/testImages.model.js");
 const Institution = require("../models/institution.model.js");
 const { encrypt } = require("../utils/helpers/handle.password");
+const { validateIDCard } = require("../utils/helpers/tools.js");
 
 // Create and Save a new caso    Listo el create
 exports.create = async (req, res) => {
@@ -30,70 +31,109 @@ exports.create = async (req, res) => {
       phoneStudent,
       gradeStudent,
       parallelStudent,
-      ciTeacher,
-      nameInstitution,
-      idDece,
+      ciTeacher, //Seleccion del docente por Cedula
+      idDece, //Seleccion del dece por Id
+      nameInstitution, //seleccion del docente por nombre de institucion
     } = req.body;
 
-    const institution = await Institution.findOne({ nameInstitution }).session(
-      session
-    );
+    //Comprueba la cedula
+    const validateCard = await validateIDCard(ciStudent);
 
+    //Si la cedula es invalida este emitira un mensaje de error
+    if (!validateCard) {
+      return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
+    }
+
+    //Comprueba la existencia de la institucion
+    const institution = await Institution.findOne({ nameInstitution }).session(session);
+
+    //Si la institucion no es encontrada este emitira un mensaje de error 
     if (!institution) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).send({ error: "Institución no registrada" });
     }
 
-    let student;
-    let personStudent = await Student.findOne({ CI: ciStudent }).session(
-      session
-    );
+    //Comprueba si el estudiante ya ha sido registrado
+    const personStudent = await Student.findOne({ CI: ciStudent }).session(session);
+
+    //devuelve una alerta si el estudiante ya esta registrado
     if (personStudent) {
-      student = await Student.findOne({ person: personStudent._id }).session(
-        session
-      );
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).send({ error: "El estudiante ya se encuentra registrado" });
     }
 
-    if (!student) {
-      const person = new Person({
-        name: nameStudent,
-        lastName: lastNameStudent,
-        gender: gender,
-        age: ageStudent,
-        address: addressStudent,
-        phone: phoneStudent,
-        CI: ciStudent,
-        institution: institution._id,
-      });
+    //Crea la persona 
+    const person = new Person({
+      name: nameStudent,
+      lastName: lastNameStudent,
+      gender: gender,
+      age: ageStudent,
+      address: addressStudent,
+      phone: phoneStudent,
+      CI: ciStudent,
+      institution: institution._id,
+    });
 
-      student = new Student({
-        person: person._id,
-        grade: gradeStudent,
-        parallel: parallelStudent,
-      });
+    //Crea el estudiante
+    const student = new Student({
+      person: person._id,
+      grade: gradeStudent,
+      parallel: parallelStudent,
+    });
 
-      await person.save({ session });
-      await student.save({ session });
+    //Los guarda en las colecciones para el estudiante
+    await person.save({ session });
+    await student.save({ session });
+  
+
+    let teacher = await Teacher.aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "userData",
+          },
+        },
+        {
+          $lookup: {
+            from: "persons",
+            localField: "userData.person",
+            foreignField: "_id",
+            as: "personData",
+          },
+        },
+        {
+          $match: {
+            "personData.CI": ciTeacher,
+          },
+        },
+      ]).session(session);
+
+
+    const teacherFound = teacher.length > 0 ? teacher[0] : null;
+
+    //Se emite un error si el docente no se encuentra registrado
+    if(!teacherFound){
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).send({ error: "El docente no se encuentra registrado.." });      
     }
 
-    let teacher;
-    let personTeac = await Person.findOne({ CI: ciTeacher }).session(session);
+    const deceFound = await Dece.findOne({ user: idDece }).session(session);
 
-    if (personTeac) {
-      let userTeac = await User.findOne({ person: personTeac }).session(
-        session
-      );
-      if (userTeac) {
-        teacher = await Teacher.findOne({ user: userTeac }).session(session);
-      }
+    //Se emite un error si el docente no se encuentra registrado
+    if(!deceFound){
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).send({ error: "El dece no se encuentra registrado.." });      
     }
-
-    const dece = await Dece.findOne({ user: idDece }).session(session);
 
     const caso = await new Caso({
-      dece: dece._id,
-      teacher: teacher._id,
+      dece: deceFound._id,
+      teacher: teacherFound._id,
       student: student._id,
       dateStart: Date.now(),
     }).save({ session });
