@@ -41,6 +41,8 @@ exports.create = async (req, res) => {
 
     //Si la cedula es invalida este emitira un mensaje de error
     if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
     }
 
@@ -925,36 +927,40 @@ exports.deleteAll = async (req, res) => {
 
 exports.delete = async (req, res) => {
   const session = await mongoose.startSession();
-
+  session.startTransaction();
   try {
-    await session.withTransaction(async () => {
-      const caso = await Caso.findById(req.params.id).session(session);
+      const { id } = req.params;
+      const caso = await Caso.findById(req.id).session(session);
 
-      if (caso) {
-        const student = await Student.findById(caso.student).session(session);
-        const testTeacherPromise = TestTeacher.findOneAndRemove({
-          caso: caso._id,
-        }).session(session);
-        const testStudentPromise = TestStudent.findOneAndRemove({
-          caso: caso._id,
-        }).session(session);
+      const student = await Student.findById(caso.student).session(session); 
 
-        await Promise.all([testTeacherPromise, testStudentPromise]);
+      const testTeacherPromise = TestTeacher.findOne({caso: caso._id}).session(session);
 
-        if (student) {
-          await Person.findByIdAndRemove(student.person).session(session);
-          await Student.findByIdAndRemove(student._id).session(session);
-        }
-
-        await caso.remove();
+      if(testTeacherPromise){
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).send({ error: "Error al eliminar caso, tiene test ejecutados.." });
       }
-    });
 
+      const testStudentPromise = TestStudent.findOne({caso: caso._id}).session(session);
+      
+      if(testStudentPromise){
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).send({ error: "Error al eliminar caso, tiene test ejecutados.." });
+      }
+
+      if (student) {
+        await Person.findByIdAndRemove(student.person).session(session);
+        await Student.findByIdAndRemove(student._id).session(session);
+      }
+      
+    await caso.remove();
     res.send({ message: "Caso deleted successfully!" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ error: "Error deleting caso" });
-  } finally {
+  }  catch (error) {
+    console.log(error);
+    await session.abortTransaction();
     session.endSession();
+    res.status(400).send({ error: "Error creating Caso" });
   }
 };
