@@ -298,10 +298,7 @@ exports.testStudent = async (req, res) => {
     }
 
     const questions = await TestImages.find({ section: { $ne: 0 } }, { value: 1 });
-    const scoreMax = questions.reduce(
-      (total, question) => total + question.value,
-      0
-    );
+    const scoreMax = answers.length()
     const score = answers.reduce(
       (total, answer) => total + answer.valueAnswer,
       0
