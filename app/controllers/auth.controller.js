@@ -136,8 +136,8 @@ exports.recoverPassword = async (req, res) => {
       if (result === true) {
         res.status(200).send({
           message: "Código de recuperación enviado",
-          timeExpire: userObject.recoverCodeExp.toLocaleString(),
-          seconds: Math.floor(userObject.recoverCodeExp - Date.now()),
+          timeExpire: user.recoverCodeExp.toLocaleString(),
+          seconds: Math.floor(user.recoverCodeExp - Date.now()),
         });
       } else {
         res.status(403).send({
