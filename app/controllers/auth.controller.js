@@ -114,25 +114,20 @@ exports.recoverPassword = async (req, res) => {
       return res.status(400).send({ error: "Correo no encontrado" });
     }
 
-    // Obtener el usuario por su ID
-    const userObject = userSearch[0];
+     // Obtener el usuario por su ID
+    const user = await User.findById(userSearch[0]._id);
 
     // Generar un código de recuperación aleatorio de 6 dígitos
     const recoverCode = Math.floor(100000 + Math.random() * 900000);
 
     // Establecer el código de recuperación y su fecha de expiración
-    userObject.recoverCode = recoverCode;
-    userObject.recoverCodeExp = Date.now() + 300000; // 300000 milisegundos = 5 minutos
+    user.recoverCode = recoverCode;
+    user.recoverCodeExp = Date.now() + 300000; // 300000 milisegundos = 5 minutos
 
-    // Limpiar el código de recuperación y su fecha de expiración después de 5 minutos
-    setTimeout(() => {
-      userObject.recoverCode = null;
-      userObject.recoverCodeExp = null;
-      User.findByIdAndUpdate(userObject._id, userObject).exec();
-    }, 300000);
+    
 
     // Guardar los cambios en el usuario
-    await User.findByIdAndUpdate(userObject._id, userObject).exec();
+    await user.save();
 
     const subject = 'SeriusGame - Recuperación de cuenta'
     const operation = 1;
@@ -150,6 +145,8 @@ exports.recoverPassword = async (req, res) => {
         });
       }
     });
+
+    
   } catch (error) {
     console.error(error);
     res.status(400).send({ error: "Error en la recuperación de contraseña" });
@@ -191,8 +188,17 @@ exports.validateRecoverCode = async (req, res) => {
     }
 
     if (user.recoverCodeExp < Date.now()) {
+      // Código expirado, limpiar el código de recuperación y su fecha de expiración
+      user.recoverCode = null;
+      user.recoverCodeExp = null;
+      await user.save();
       return res.status(400).send({ error: "Código expirado" });
     }
+
+    // Código validado correctamente, eliminar el código de recuperación y su fecha de expiración
+    user.recoverCode = null;
+    user.recoverCodeExp = null;
+    await user.save();
 
     res.status(200).send({ message: "Código valido" });
   } catch (error) {
@@ -236,31 +242,10 @@ exports.changePassword = async (req, res) => {
     const newPass = await encrypt(newPassword);
     const user = await User.findById(userSearch[0]._id);
     user.password = newPass;
-    user.recoverCode = null;
-    user.recoverCodeExp = null;
     await user.save();
-    res.status(200).send({ message: "Password changed" });
+    res.status(200).send({ message: "Contraseña cambiada con exito" });
   } catch (error) {
-    res.status(400).send(error + "Error password change");
+    res.status(400).send(error + "Error al cambiar contraseña");
   }
 };
 
-//Ojo con este metodo no vale la pena
-//
-exports.validate = async (req, res) => {
-  try {
-    const { id, password } = req.body;
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(400).send({ error: "User not found" });
-    }
-    const checkPass = await compare(password, user.password);
-    if (!checkPass) {
-      return res.status(400).send({ error: "Password incorrect" });
-    }
-    res.status(200).send({ message: "User validated" });
-  } catch (error) {
-    console.log(error);
-    res.status(400).send({ message: "Error validating user" });
-  }
-};
