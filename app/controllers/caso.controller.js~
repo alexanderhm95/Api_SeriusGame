@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+onst mongoose = require("mongoose");
 
 const Caso = require("../models/caso.model.js");
 const User = require("../models/user.model.js");
@@ -45,17 +45,91 @@ exports.create = async (req, res) => {
       return res.status(400).send({ error: "Institución no registrada" });
     }
 
-    let student;
-    let personStudent = await Student.findOne({ CI: ciStudent }).session(
-      session
-    );
-    if (personStudent) {
-      student = await Student.findOne({ person: personStudent._id }).session(
-        session
-      );
+    //Verifica la existencia del estudiante
+    const personStudent = await Person.findOne({ CI: ciStudent })
+    .populate({
+    path:"institution",
+    select:"nameInstitution"
+    }).session(session);
+
+    //Extrae los datos del rol de estudiante
+    const student = await Student.findOne({ person:personStudent }).session(session);
+
+    //Extrae los datos del docente
+     const teacherFound = await Teacher.aggregate([
+                {
+                  $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "userData",
+                  },
+                },
+                {
+                  $unwind: "$userData"
+                },
+                {
+                  $lookup: {
+                    from: "people",
+                    localField: "userData.person",
+                    foreignField: "_id",
+                    as: "personData",
+                  },
+                },
+                {
+                  $unwind: {
+                    path: "$personData",
+                    preserveNullAndEmptyArrays: true
+                  }
+                },
+                {
+                  $match: {
+                    "personData.CI": ciTeacher,
+                  },
+                }
+             ]).session(session);
+
+    //Comprueba la existencia del docente
+    const teacher = teacherFound[0];
+    if(teacher){
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).send({ error: "El docente no se encuentra registrado" });
     }
 
-    if (!student) {
+    //Comprueba la existencia del dece
+    const dece = await Dece.findOne({ user: idDece }).session(session);
+    if(dece){
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).send({ error: "El Dece no se encuentra registrado" });
+    }
+
+    //Registro del caso, si el estudiante ya se encuentra registrado pero esta en otra institutcion
+    if (personStudent && student) {
+        //Si es la misma intitucion emite un error
+        if(personStudent.institution.nameInstitution === nameInstitution ){
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).send({ error: "El estudiante ya tiene un caso registrado en la institución" });
+        }
+
+        //Si no es la misma institucion se guarda el caso
+        const caso = await new Caso({
+          dece: dece._id,
+          teacher: teacher._id,
+          student: student._id,
+          dateStart: Date.now(),
+        }).save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+        res.status(201).send({ message: "Caso creado exitosamente..!" });
+
+    }
+
+
+    if (!student && personStudent ) {
       const person = new Person({
         name: nameStudent,
         lastName: lastNameStudent,
@@ -77,19 +151,7 @@ exports.create = async (req, res) => {
       await student.save({ session });
     }
 
-    let teacher;
-    let personTeac = await Person.findOne({ CI: ciTeacher }).session(session);
-
-    if (personTeac) {
-      let userTeac = await User.findOne({ person: personTeac }).session(
-        session
-      );
-      if (userTeac) {
-        teacher = await Teacher.findOne({ user: userTeac }).session(session);
-      }
-    }
-
-    const dece = await Dece.findOne({ user: idDece }).session(session);
+    
 
     const caso = await new Caso({
       dece: dece._id,
@@ -384,10 +446,10 @@ exports.testTeacher = async (req, res) => {
       diagnostic: diagnostic,
     }).save();
 
-    res.status(201).send({ message: "TestTeacher created successfully!" });
+    res.status(201).send({ message: "Test docente creado exitosamente!" });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: error + "Error creating Caso" });
+    res.status(400).send({ error: error + "Error al cargar Test Docente" });
   }
 };
 
@@ -874,14 +936,7 @@ exports.getCaso = async (req, res) => {
   }
 };
 
-exports.deleteAll = async (req, res) => {
-  try {
-    await Caso.deleteMany();
-    res.send({ message: "caso deleted successfully!" });
-  } catch (error) {
-    res.status(500).send({ error: error + "Error deleting caso" });
-  }
-};
+
 
 exports.delete = async (req, res) => {
   const session = await mongoose.startSession();

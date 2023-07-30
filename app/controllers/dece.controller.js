@@ -11,66 +11,86 @@ const { validateIDCard, generatorPass } = require("../utils/helpers/tools.js");
 
 // Create and Save a new dece
 exports.createDece = async (req, res) => {
+  console.log(req.body)
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
+    //Obtenemos la data
     const { CI, name, lastName, address, phone, email, nameInstitution } = req.body;
 
-    const validateCard = await validateIDCard(CI);
+    //Verificamos la validez de la cedula
+    const validateCard = await validateIDCard(CI).session(session);
+
+    //Emitimos un error en caso de que la cedula sea erronea
     if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();
       console.log("La cédula que ingresaste es inválida");
       return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
     }
 
-    const existingInstitution = await Institution.findOne({ nameInstitution });
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ CI }).exec().session(session);
+    const isEmailNotDuplicated = await Person.findOne({ email }).exec().session(session);
+    
+    //si el email ya esta registrado retornamos un error
+    if (isCINotDuplicated) {
+      console.log("La cédula pertenecea un usuario registrado")
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "La cédula pertenecea un usuario registrado" });
+    }
+
+    if (isEmailNotDuplicated) {
+      console.log("El correo pertenecea un usuario registrado")
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "El correo pertenece a un usuario registrado" });
+    }
+
+    //Verifica la existencia de la institucion 
+    const existingInstitution = await Institution.findOne({ nameInstitution }).session(session);
+    //Emite un error si la institucion no existe
     if (!existingInstitution) {
+      await session.abortTransaction();
+      session.endSession();
       console.log("La institución no se encuentra registrada");
       return res.status(400).send({ error: "La institución no se encuentra registrada" });
     }
 
-    const existingPerson = await User.aggregate([
-      {
-        $lookup: {
-          from: "people",
-          localField: "person",
-          foreignField: "_id",
-          as: "personData",
-        },
-      },
-      {
-        $match: {
-          $or: [{ "personData.CI": CI }, { "personData.email": email }],
-        },
-      },
-    ]);
-
-    if (existingPerson.length >0) {
-      console.log("Este usuario ya se encuentra registrado");
-      return res.status(400).send({ error: "Este usuario ya se encuentra registrado" });
-    }
-
+    //Genera una contraseña de Mayusculas, minusculas y numeros
     const pass =  generatorPass();
-    const hashedPassword = await encrypt(pass);
+    //Encripta la contraseña
+    const hashedPassword = await encrypt(pass).session(session);
+    //Guarda los datos para enviar el correo.
     const subject = 'SeriusGame - Nueva cuenta'
     const operation = 0;
 
+    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id }).session(session);
+    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" }).session(session);
+    await Dece.create({ user: user._id}).session(session);
 
+    //Enviamos el correo  con los datos 
+    const result = await sendRecoveryCodeEmail(email, pass , subject, operation).session(session);
+    if (result) {
+      console.log(`Código enviado exitosamente`);
+    } else {
+      console.log(`Error al enviar el código`);
+    }
 
-    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id });
-    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" });
-    await Dece.create({ user: user._id});
-
-    sendRecoveryCodeEmail(email, pass , subject, operation).then((result) => {
-    if (result === true) {
-        console.log(`Código enviado exitosamente`);
-      } else {
-        console.log("Servicio no disponible, inténtelo más tarde");
-      } 
-    });
-
-
-    res.status(201).send({ message: "DECE creado correctamente" });
+    await session.commitTransaction();
+    session.endSession();
+    res.status(201).send({ message: "Dece creado correctamente" });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: "Error al crear el DECE" });
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).send({ error: "Error al crear el Dece" });
   }
 };
 
@@ -170,12 +190,25 @@ exports.updateDece = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    //Llega el id a editar
     const { id } = req.params;
+    //datos para modificar
     const { CI, name, lastName, address, phone, email, nameInstitution } =
       req.body;
 
+    //Busca la existencia del dece 
     const dece = await Dece.findById(id).session(session);
-    if (!dece) {
+    //Busca la existencia del usuario
+    const user = await User.findById(dece.user).session(session);
+    //Busca la existencia de la persona
+    const person = await Person.findById(user.person)
+    .populate({
+      path:"institution",
+      select:"nameInstitution"
+    })
+    .session(session);
+
+    if (!dece || !user || !person) {
       await session.abortTransaction();
       session.endSession();
       return res
@@ -183,12 +216,42 @@ exports.updateDece = async (req, res) => {
         .send({ error: "El dece no se encuentra registrado" });
     }
 
-    const existingPerson = await Person.findOne({ email }).session(session);
+    //Verifica la validez de la cedula
+    const validateCard = await validateIDCard(CI);
 
-    if (!existingPerson) {
+    if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();  
+      console.log("La cédula que ingresaste es inválida");
+      return res
+        .status(400)
+        .send({ error: "La cédula que ingresaste es inválida" });
+    }
+
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
+    const isEmailNotDuplicated = await Person.findOne({ _id: { $ne: person._id }, email: email }).exec();
+
+    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    if (isCINotDuplicated){
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).send({ error: "La persona no esta registrada" });
+      console.log("La cédula pertenece a otro usuario")
+      return res
+        .status(400)
+        .send({ error: "La cédula pertenece a otro usuario"});
+
+    }
+
+    //Emite un error en el caso de que el correo pertenezca a otro usuario
+    if (isEmailNotDuplicated){
+      await session.abortTransaction();
+      session.endSession();
+      console.log("El correo pertenece a otro usuario")
+      return res
+        .status(400)
+        .send({ error: "El correo pertenece a otro usuario"});
+
     }
 
     const institution = await Institution.findOne({ nameInstitution }).session(
@@ -203,9 +266,92 @@ exports.updateDece = async (req, res) => {
         .send({ error: "La institución no esta registrada" });
     }
 
+    //Si el dece se cambia de institucion..
+    if (person.institution.nameInstitution !== nameInstitution) {
+      console.log("entra")
+      try{ 
+            // Buscar deces de la misma institución
+            const deceAlternative = await Dece.aggregate([
+                {
+                  $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "userData",
+                  },
+                },
+                {
+                  $unwind: "$userData"
+                },
+                {
+                  $lookup: {
+                    from: "people",
+                    localField: "userData.person",
+                    foreignField: "_id",
+                    as: "personData",
+                  },
+                },
+                {
+                  $unwind: {
+                    path: "$personData",
+                    preserveNullAndEmptyArrays: true
+                  }
+                },
+                {
+                  $lookup: {
+                    from: "institutions",
+                    localField: "personData.institution",
+                    foreignField: "_id",
+                    as: "institutionData",
+                  },
+                },
+                {
+                  $unwind: {
+                    path: "$institutionData",
+                    preserveNullAndEmptyArrays: true
+                  }
+                },
+                {
+                  $match: {
+                    "institutionData.nameInstitution": person.institution.nameInstitution,
+                    "personData._id": { $ne: person._id } // Excluir el person._id
+                  },
+                },
+                 { $limit: 1 } // Limitar a 1 resultado
+             ]).session(session);
+
+    
+           
+        // Reasignar los casos al primer dece encontrado
+        const firstDece = deceAlternative[0];
+        const casos = await Caso.find({ dece }).lean().session(session);
+        const casoIds = casos.map((caso) => caso._id);
+
+         if (deceAlternative.length === 0 && casos.length > 0) {
+              return res
+                .status(400)
+                .send({ error: "No es posible editar la institución, no hay mas deces registrados en la institución" });
+            }
+
+        if(deceAlternative.length>0 && casos.length>0){
+           await Caso.updateMany(
+          { _id: { $in: casoIds } },
+          { $set: { dece: firstDece._id } },
+          { session }
+        );
+
+        console.log(`Se han reasignado ${casos.length} casos al dece: ${deceAlternative?.userData?.personData?.name} ${deceAlternative?.userData?.personData?.lastName}`); 
+        }
+      } catch (error) {
+        // Manejo de errores durante la reasignación de casos
+        console.log("Error al reasignar casos:", error);
+        return res.status(400).send({ error: "Error al reasignar casos" });
+      }
+    }
+
     //Se va a buscar el dece por el email del usuario mismo que pertenece ala persona
     const updateDece = await Person.findByIdAndUpdate(
-      existingPerson._id,
+      person._id,
       {
         CI,
         name,
@@ -217,13 +363,13 @@ exports.updateDece = async (req, res) => {
       },
       { new: true, session }
     );
-
+    // Commit de la transacción y finalización de la sesión
     await session.commitTransaction();
     session.endSession();
-    res
-      .status(200)
-      .send({ message: "Dece actualizado correctamente", data: updateDece });
+
+    res.status(200).send({ message: "Dece actualizado correctamente", data: updateDece });
   } catch (error) {
+    // Manejo de errores generales
     await session.abortTransaction();
     session.endSession();
     console.log(error);
@@ -231,15 +377,15 @@ exports.updateDece = async (req, res) => {
   }
 };
 
+
 // Delete a dece with the specified deceId in the request
 exports.deleteDece = async (req, res) => {
-  let session;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    session = await mongoose.startSession();
-    session.startTransaction();
 
-    const deceId = req.params.id;
+    const {id} = req.params;
 
     const dece = await Dece.findById(deceId)
       .populate({

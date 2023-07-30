@@ -5,6 +5,8 @@ const Person = require("../models/person.model.js");
 const Institution = require("../models/institution.model.js");
 const Caso = require("../models/caso.model.js");
 const { generateToken } = require("../utils/helpers/handle.jwt");
+const { validateIDCard } = require("../utils/helpers/tools.js");
+
 
 // Create and Save a new student
 exports.createStudent = async (req, res) => {
@@ -26,9 +28,41 @@ exports.createStudent = async (req, res) => {
       parallel,
     } = req.body;
 
-    const existingPerson = await Person.findOne({ CI }).session(session);
-    if (existingPerson) {
-      throw new Error("La persona ya está registrada");
+    //Verificamos la validez de la cedula
+    const validateCard = await validateIDCard(CI).session(session);
+
+    //Emitimos un error en caso de que la cedula sea erronea
+    if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();
+      console.log("La cédula que ingresaste es inválida");
+      return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
+    }
+
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ CI }).exec().session(session);
+  
+    //si el email ya esta registrado retornamos un error
+    if (isCINotDuplicated) {
+      console.log("La cédula pertenecea un usuario registrado")
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "La cédula pertenecea un usuario registrado" });
+    }
+
+    
+
+    const institution = await Institution.findOne({ nameInstitution }).session(
+      session
+    );
+
+    if (!institution) {
+      await session.abortTransaction();
+      session.endSession();
+      console.log("La institución no se encuentra registrada");
+      return res.status(400).send({ error: "La institución no se encuentra registrada" });
     }
 
     const newPerson = await new Person({
@@ -40,20 +74,13 @@ exports.createStudent = async (req, res) => {
       gender,
     }).save({ session });
 
-    const institution = await Institution.findOne({ nameInstitution }).session(
-      session
-    );
-
-    if (!institution) {
-      throw new Error("La institución no está registrada");
-    }
-
     await new Student({
       person: newPerson._id,
       institution: institution._id,
       grade,
       parallel,
     }).save({ session });
+
     await session.commitTransaction();
     session.endSession();
     res.status(201).send({ message: "Estudiante creado exitosamente!" });
@@ -102,7 +129,7 @@ exports.getStudents = async (req, res) => {
 
     res
       .status(200)
-      .send({ message: "Students found successfully!", listaStudent });
+      .send({ message: "Estudiantes encontrados con exito!", listaStudent });
   } catch (error) {
     console.log(error);
     res.status(400).send(error + "Error al obtener los estudiantes");
@@ -126,7 +153,7 @@ exports.getStudent = async (req, res) => {
       .lean();
 
     if (!student) {
-      return res.status(400).send({ error: "Student not found" });
+      return res.status(400).send({ error: "Estudiante no encontrado" });
     }
 
     const studentData = {
@@ -160,6 +187,9 @@ exports.updateStudent = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    //Llega el id a editar
+    const { id } = req.params;
+    //datos para modificar
     const {
       CI,
       name,
@@ -173,20 +203,49 @@ exports.updateStudent = async (req, res) => {
       parallel,
     } = req.body;
 
-    const existingPerson = await Person.findOne({ CI }).session(session);
-    if (!existingPerson) {
-      return res.status(400).send({ error: "La persona no esta registrada" });
+    //Busca la existencia del dece 
+    const student = await Student.findById(id).session(session);
+    //Busca la existencia de la persona
+    const person = await Person.findById(student.person)
+    .populate({
+      path:"institution",
+      select:"nameInstitution"
+    })
+    .session(session);
+
+    if (!student || !person) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "El estudiante no se encuentra registrado" });
+    }
+    //Verifica la validez de la cedula
+    const validateCard = await validateIDCard(CI);
+
+    if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();  
+      console.log("La cédula que ingresaste es inválida");
+      return res
+        .status(400)
+        .send({ error: "La cédula que ingresaste es inválida" });
     }
 
-    await Person.findByIdAndUpdate(existingPerson._id, {
-      CI,
-      name,
-      lastName,
-      address,
-      phone,
-      gender,
-      age,
-    }).session(session);
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
+ 
+    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    if (isCINotDuplicated){
+      await session.abortTransaction();
+      session.endSession();
+      console.log("La cédula pertenece a otro usuario")
+      return res
+        .status(400)
+        .send({ error: "La cédula pertenece a otro usuario"});
+    }
+
+   
 
     const institution = await Institution.findOne({ nameInstitution }).session(
       session
@@ -198,11 +257,23 @@ exports.updateStudent = async (req, res) => {
         .send({ error: "La institución no está registrada" });
     }
 
-    const studentUpdate = await Student.findByIdAndUpdate(req.params.id, {
-      institution: institution._id,
+     await Person.findByIdAndUpdate(person._id, {
+      CI,
+      name,
+      lastName,
+      address,
+      phone,
+      gender,
+      age,
+      institution
+    }).session(session);
+
+    const studentUpdate = await Student.findByIdAndUpdate(id, {
       parallel,
       grade,
     }).session(session);
+
+    console.log(studentUpdate)
 
     await session.commitTransaction();
     session.endSession();

@@ -15,39 +15,41 @@ exports.createUser = async (req, res) => {
   session.startTransaction();
 
   try {
-    //desestructuramos el body
+    //datos del nuevo usuario
     const { CI, name, lastName, address, phone, email, password } = req.body;
 
+    //verifica la cedula
     const validateCard = await validateIDCard(CI);
+
+    //Emite un error si la cedula es invalida
     if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();
       console.log("La cédula que ingresaste es inválida");
       return res
         .status(400)
         .send({ error: "La cédula que ingresaste es inválida" });
     }
-
-    //validamos que el email no este registrado
-    const existingPerson = await User.aggregate([
-      {
-        $lookup: {
-          from: "people",
-          localField: "person",
-          foreignField: "_id",
-          as: "personData",
-        },
-      },
-      {
-        $match: {
-          $or: [{ "personData.CI": CI }, { "personData.email": email }],
-        },
-      },
-    ]);
-
+    
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ CI }).exec();
+    const isEmailNotDuplicated = await Person.findOne({ email }).exec();
+    
     //si el email ya esta registrado retornamos un error
-    if (existingPerson.length > 0) {
+    if (isCINotDuplicated) {
+      await session.abortTransaction();
+      session.endSession();
       return res
         .status(400)
-        .send({ error: "Este usuario ya se encuentra registrado" });
+        .send({ error: "La cédula pertenecea un usuario registrado" });
+    }
+
+    if (isEmailNotDuplicated) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "El coreeo pertenece a un usuario registrado" });
     }
 
     //creamos la persona
@@ -148,19 +150,68 @@ exports.getUser = async (req, res) => {
 //metodo para actualizar un usuario de la base de datos
 //No esta terminado
 exports.updateUser = async (req, res) => {
+  console.log(req.body)
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
+    //Llega el id a editar
+    const { id } = req.params;
+    //datos para modificar
     const { ciUser, name, lastName, address, phone, email } = req.body;
 
+    //Busca la existencia del usuario
+    const user = await User.findById(id).lean()
+    //Busca la ecistencia de la persona vinculada al usuario
+    const person = await Person.findById(user.person).lean()
+
+    if(!user || !person){
+      await session.abortTransaction();
+      session.endSession();
+      console.log("El usuario no existe")
+      return res
+        .status(400)
+        .send({ error: "El usuario  no existe" });
+    }
+
+    //Verifica la validez de la cedula
     const validateCard = await validateIDCard(ciUser);
+
     if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();  
       console.log("La cédula que ingresaste es inválida");
       return res
         .status(400)
         .send({ error: "La cédula que ingresaste es inválida" });
     }
 
-    const person = await Person.findOne({ CI: ciUser });
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: ciUser }).exec();
+    const isEmailNotDuplicated = await Person.findOne({ _id: { $ne: person._id }, email: email }).exec();
 
+    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    if (isCINotDuplicated){
+      await session.abortTransaction();
+      session.endSession();
+      console.log("La cédula pertenece a otro usuario")
+      return res
+        .status(400)
+        .send({ error: "La cédula pertenece a otro usuario"});
+
+    }
+
+    //Emite un error en el caso de que el correo pertenezca a otro usuario
+    if (isEmailNotDuplicated){
+      await session.abortTransaction();
+      session.endSession();
+      console.log("El correo pertenece a otro usuario")
+      return res
+        .status(400)
+        .send({ error: "El correo pertenece a otro usuario"});
+
+    }
+
+    
     await Person.findByIdAndUpdate(
       person._id,
       {
@@ -174,9 +225,14 @@ exports.updateUser = async (req, res) => {
       { new: true }
     );
 
+    
+    await session.commitTransaction();
+    session.endSession();
     res.status(200).send({ message: "Usuario actualizado con éxito" });
   } catch (error) {
     console.log(error);
+    await session.abortTransaction();
+    session.endSession();
     res.status(401).send({ error: "Error al actualizar el usuario" });
   }
 };
@@ -195,7 +251,7 @@ exports.updateUserStatus = async (req, res) => {
 
     //Si el usuario no existe retornamos un error
     if (!user) {
-      return res.status(400).send({ error: "User not found" });
+      return res.status(400).send({ error: "El usuario no se encuentra registrado" });
     }
 
     //Si el usuario existe retornamos el usuario
@@ -215,43 +271,47 @@ exports.updateUserStatus = async (req, res) => {
 
 exports.changePasswordUser = async (req, res) => {
   try {
-    //Desestructuramos el body
+    //Obtenemos al id a editar
     const { id } = req.body;
 
-    const user = await User.findById(id).select("_id role status").populate({
+    //buscamos al usuario 
+    const user = await User.findById(id)
+    .select("_id role status")
+    .populate({
       path: "person",
       select: "_id CI email name lastName address phone ",
     });
 
 
-
+    //Emitimos un error si no se encuentra el usuario
     if (!user) {
       console.log("Usuario no encontrado")
       return res.status(400).send({ error: "Usuario no encontrado" });
     }
 
+    //generamos una contraseña randomica con Mayusculas, minusculas y numeros
     const pass = generatorPass();
+
+    //Encriptamos la contraseña
     const hashedPassword = await encrypt(pass);
-    if (!hashedPassword) {
-      console.log("Error al comprimir contrase;a")
-      return res.status(500).send({ error: "Error al comprimir contrase;a" });
-    }
+
+    //Preparamos la información para enviar los datos al correo
     const subject = "SeriusGame - Renovación de Contraseña";
     const operation = 3;
 
-    //Actualizamos el estado del usuario
+    //Actualizamos la nueva contraseña
     user.password = hashedPassword;
-    await user.save();
-    sendRecoveryCodeEmail(user.person?.email, pass, subject, operation).then(
-      (result) => {
-        if (result === true) {
-          console.log(`Código enviado exitosamente`);
-        } else {
-          console.log("Servicio no disponible, inténtelo más tarde");
-        }
-      }
-    );
 
+    //Guardamos los cambios del usuario
+    await user.save();
+
+    //Enviamos el correo  con los datos 
+    const result = await sendRecoveryCodeEmail(userEmail, recoveryCode, emailSubject, emailOperation);
+    if (result) {
+      console.log(`Código enviado exitosamente`);
+    } else {
+      console.log(`Error al enviar el código`);
+    }
 
     //Retornamos el mensaje de exito
     res.status(200).send({ message: "Renovacion exitosa" });
@@ -262,14 +322,15 @@ exports.changePasswordUser = async (req, res) => {
       .send({ error: "Error al actualizar el estado del usuario" });
   }
 };
+
+
 //metodo para eliminar un usuario de la base de datos
 exports.deleteUser = async (req, res) => {
-  let session;
+  
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    session = await mongoose.startSession();
-    session.startTransaction();
-
     const { id } = req.params;
 
     // Encuentra el usuario y obtén el ID de la persona asociada
@@ -277,15 +338,55 @@ exports.deleteUser = async (req, res) => {
       .populate({
         path: "person",
         select: "_id CI ",
-      })
-      .session(session);
-    console.log(user);
+      }).session(session);
+
 
     if (!user) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).send({ error: "Usuario no encontrado" });
     }
+
+    //Verifica si hay docentes vinculados
+    const teacherFind = await Teacher.findOne({user:user._id}).session(session);
+
+    //Si existe un vinculo a un docente
+    if(teacherFind){
+        //Verifica si tiene casos asignados
+        const casoCount = await Caso.countDocuments({ teacher: teacherFind._id }).session(session);
+        //Si no tiene casos se elimina el docente
+        if(casoCount > 0){ 
+          await session.abortTransaction();
+          session.endSession();
+          return res
+                .status(400)
+                .send({ error: "El Docente tiene casos asignados" });
+        }
+        //Elimina el docente vinculado
+        await Teacher.findByIdAndDelete(teacherFind._id).session(session);
+    }
+
+
+    //Verifica si hay deces vinculados
+    const deceFind = await Dece.findOne({user:user._id}).session(session);
+
+    //Si existe  un vinculo a un dece
+    if(deceFind){
+        //Verfica si tiene casos asignados
+        const casoCount = await Caso.countDocuments({ dece: deceFind._id }).session(session);
+        //Si no tiene casos asignados
+        if(casoCount > 0){
+          await session.abortTransaction();
+          session.endSession();
+          return res
+                .status(400)
+                .send({ error: "El Dece tiene casos asignados" }); 
+        }
+        //Elimina el dece vinculado
+        await Dece.findByIdAndDelete(deceFind._id).session(session);
+    }
+
+
 
     if (user.person === null) {
       await User.findByIdAndDelete(id).session(session);
@@ -295,28 +396,7 @@ exports.deleteUser = async (req, res) => {
         .status(200)
         .send({ message: "Usuario eliminado correctamente" });
     }
-    const teacherFind = await Teacher.findOne({user:user._id}).session(session);
-    if(teacherFind){
-        const casoCount = await Caso.countDocuments({ teacher: teacherFind._id }).session(session);
-        if(casoCount === 0){ 
-        await Teacher.findByIdAndDelete(teacherFind._id).session(session);
-}else{
-return res
-        .status(400)
-        .send({ error: "El Docente tiene casos asignados" });
-}
-    }
-    const deceFind = await Dece.findOne({user:user._id}).session(session);
-if(deceFind){
-        const casoCount = await Caso.countDocuments({ dece: deceFind._id }).session(session);
-        if(casoCount === 0){ 
-        await Dece.findByIdAndDelete(deceFind._id).session(session);
-}else{
-return res
-        .status(400)
-        .send({ error: "El Dece tiene casos asignados" });
-}
-    }
+   
     await Person.findByIdAndDelete(user.person._id).session(session);
     await User.findByIdAndDelete(id).session(session);
 

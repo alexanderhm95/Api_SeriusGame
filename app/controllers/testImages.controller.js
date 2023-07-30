@@ -43,6 +43,80 @@ exports.create = async (req, res) => {
   }
 };
 
+exports.update = async (req, res) => {
+    let srcImageNew  = ''; 
+    let srcImageOld = ''; 
+  try {
+    const { data } = req.body;
+
+    const testImagesOld = await TestImages.findById(req.params.id);
+
+    const testImages = JSON.parse(data);
+
+    const test = {
+      name: testImages.name,
+      link: testImages.urlImage,
+      value: testImages.value,
+      section: testImages.section,
+    };
+
+   const countSection = await TestImages.find({section:test.section}).lean()
+    
+    if((countSection.length-1) >= 3){
+      return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
+    }
+
+    srcImageNew  = tes.link;
+    srcImageOld = testImagesOld.link;
+    
+    testImagesOld.name=test.name;
+    testImagesOld.link=test.link;
+    testImagesOld.valuetest.value;
+    testImagesOld.section=test.section;
+
+
+
+    //const updatedTestImages = await TestImages.findByIdAndUpdate(
+    //  req.params.id,
+    //  test,
+    //  { new: true }
+    //);
+
+
+
+    if (srcImageNew != srcImageOld) {
+      // Eliminar la imagen anterior
+      console.log("Entro a eliminar la imagen ",srcImageOld)
+      const deleteFile = resolve(__dirname, "..", `../${srcImageOld}`);
+      fs.unlink(deleteFile, (err) => {
+        if (err) {
+          console.log("Error deleting file:", err);
+        } else {
+          console.log("File deleted:", deleteFile);
+        }
+      });
+    }
+
+    await testImagesOld.save();
+
+    res.status(200).send(updatedTestImages);
+  } catch (error) {
+
+    const deleteFile = resolve(__dirname, "..", `../${srcImageNew}`);
+
+    fs.unlink(deleteFile, (err) => {
+      if (err) {
+        console.log("Error deleting file:", err);
+      } else {
+        console.log("File deleted:", deleteFile);
+      }
+    });
+
+    console.log(error);
+    res.status(400).send({ error: "Error updating TestImages" });
+  }
+};
+
 const options = {
   defaultPage: 1,
   defaultLimit: 6,

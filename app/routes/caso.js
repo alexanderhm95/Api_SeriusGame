@@ -13,7 +13,6 @@ router.get('/casos/:id',      checkAuth(['DECE','TEACHER','STUDENT']),  caseCont
 router.get('/:id',            checkAuth(['DECE','TEACHER','STUDENT']),  caseController.getCaso);
 router.get('/reporte/:id',            checkAuth(['DECE','TEACHER','STUDENT']),  caseController.getReporte);
 router.get('/teacher/:id',    checkAuth(['DECE','TEACHER','STUDENT']),  caseController.getAllStudentsXTeacher);
-router.delete('/',            checkAuth(['DECE','TEACHER','STUDENT']),  caseController.deleteAll);
 router.delete('/:id',         checkAuth(['DECE','TEACHER','STUDENT']),  caseController.delete);
 
 module.exports = router;
