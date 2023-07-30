@@ -17,10 +17,12 @@ const { validateIDCard } = require("../utils/helpers/tools.js");
 // Create and Save a new caso    Listo el create
 exports.create = async (req, res) => {
   console.log(req.body);
-
   const session = await mongoose.startSession();
   session.startTransaction();
+
   try {
+
+    //Ingreso de datos
     const {
       ciStudent,
       nameStudent,
@@ -31,9 +33,9 @@ exports.create = async (req, res) => {
       phoneStudent,
       gradeStudent,
       parallelStudent,
-      ciTeacher, //Seleccion del docente por Cedula
-      idDece, //Seleccion del dece por Id
-      nameInstitution, //seleccion del docente por nombre de institucion
+      ciTeacher, //Docente para el caso
+      idDece, //Dece para el caso
+      nameInstitution, //Institucion para el docente
     } = req.body;
 
     //Comprueba la cedula
@@ -203,7 +205,7 @@ exports.update = async (req, res) => {
         .send({ error: "El estudiante no se encuentra registrado" });
     }
     //Verifica la validez de la cedula
-    const validateCard = await validateIDCard(CI);
+    const validateCard = await validateIDCard(ciStudent);
 
     if (!validateCard) {
       await session.abortTransaction();
@@ -215,7 +217,7 @@ exports.update = async (req, res) => {
     }
 
     //Verifica  si existen el CI o correo en otras cuentas
-    const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
+    const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: ciStudent }).exec();
  
     //Emite un error en el caso de qque la cedula pertenezca a otro usuario
     if (isCINotDuplicated){
