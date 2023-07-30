@@ -171,6 +171,7 @@ exports.update = async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      idStudent,
       ciStudent,
       nameStudent,
       lastNameStudent,
@@ -182,6 +183,50 @@ exports.update = async (req, res) => {
       parallelStudent,
       ciTeacher,
     } = req.body;
+
+
+    //Busca la existencia del dece 
+    const student = await Student.findById(idStudent).session(session);
+    //Busca la existencia de la persona
+    const person = await Person.findById(student.person)
+    .populate({
+      path:"institution",
+      select:"nameInstitution"
+    })
+    .session(session);
+
+    if (!student || !person) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .send({ error: "El estudiante no se encuentra registrado" });
+    }
+    //Verifica la validez de la cedula
+    const validateCard = await validateIDCard(CI);
+
+    if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();  
+      console.log("La cédula que ingresaste es inválida");
+      return res
+        .status(400)
+        .send({ error: "La cédula que ingresaste es inválida" });
+    }
+
+    //Verifica  si existen el CI o correo en otras cuentas
+    const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
+ 
+    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    if (isCINotDuplicated){
+      await session.abortTransaction();
+      session.endSession();
+      console.log("La cédula pertenece a otro usuario")
+      return res
+        .status(400)
+        .send({ error: "La cédula pertenece a otro usuario"});
+    }
+
 
     // Actualizar información del estudiante
     const personStudent = await Person.findOneAndUpdate(
@@ -616,6 +661,7 @@ exports.findAll = async (req, res) => {
               $project: {
                 _id: 1,
                 dateStart: 1,
+                idStudent: "$student._id",
                 ciStudent: "$student.person.CI",
                 nameStudent: "$student.person.name",
                 lastNameStudent: "$student.person.lastName",
@@ -849,7 +895,7 @@ exports.getCaso = async (req, res) => {
     const caso = await Caso.findById(id)
       .populate({
         path: "student",
-        select: "grade parallel",
+        select: "_id grade parallel",
         populate: {
           path: "person",
           select: "name lastName CI address gender age phone",
@@ -894,6 +940,7 @@ exports.getCaso = async (req, res) => {
     const casoData = {
       id: caso._id,
       dateStart: caso.dateStart || null,
+      idStudent: caso.student._id || null,
       ciStudent: caso.student?.person?.CI || "no asignado",
       nameStudent: caso.student?.person?.name || "no asignado",
       lastNameStudent: caso.student?.person?.lastName || "no asignado",
