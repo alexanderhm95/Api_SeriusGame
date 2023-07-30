@@ -306,7 +306,7 @@ exports.changePasswordUser = async (req, res) => {
     await user.save();
 
     //Enviamos el correo  con los datos 
-    const result = await sendRecoveryCodeEmail(userEmail, recoveryCode, emailSubject, emailOperation);
+    const result = await sendRecoveryCodeEmail(user.person.email, hashedPassword, subject, operation);
     if (result) {
       console.log(`Código enviado exitosamente`);
     } else {
