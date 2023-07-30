@@ -52,14 +52,14 @@ exports.findAll = async (req, res) => {
             id: testTeacher._id ? testTeacher._id : null,
             scoreMax: testTeacher.scoreMax ? testTeacher.scoreMax : 0,
             score: testTeacher.score ? testTeacher.score : 0,
-            statusTestTeacher: testTeacher.status ? testTeacher.status : false,
+            statusTestTeacher: testTeacher?.status ? testTeacher.status : false,
             ciStudent: student.CI,
             nameStudent: student.name,
             lastNameStudent: student.lastName,
-            ciTeacher: teacher.CI,
-            nameTeacher: teacher.name,
-            lastNameTeacher: teacher.lastName,
-            createAt: testTeacher.createdAt ? testTeacher.createdAt : null,
+            ciTeacher: teacher?.CI ? teacher.CI : null,
+            nameTeacher: teacher?.name ? teacher.name : null,
+            lastNameTeacher: teacher?.lastName ? teacher.name : null,
+            createAt: testTeacher?.createdAt ? testTeacher.createdAt : null,
           };
         })
       );
