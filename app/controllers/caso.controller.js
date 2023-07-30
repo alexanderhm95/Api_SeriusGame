@@ -986,37 +986,42 @@ exports.delete = async (req, res) => {
   session.startTransaction();
   try {
       const { id } = req.params;
-      const caso = await Caso.findById(req.id).session(session);
+      console.log(id)
+      const caso = await Caso.findById(id).session(session);
+      console.log(caso)
 
       const student = await Student.findById(caso.student).session(session); 
 
-      const testTeacherPromise = TestTeacher.findOne({caso: caso._id}).session(session);
+      //Comprueba si el estudiante tiene test ejecutados
+      const testTeacherPromise = await TestTeacher.findOne({caso: caso._id}).session(session);
+      const testStudentPromise = await TestStudent.findOne({caso: caso._id}).session(session);
+      console.log("Test docente:",testTeacherPromise)
+      console.log("Test estudiante:",testStudentPromise)
 
-      if(testTeacherPromise){
+      if(testTeacherPromise || testStudentPromise){
         await session.abortTransaction();
         session.endSession();
         return res.status(400).send({ error: "Error al eliminar caso, tiene test ejecutados.." });
       }
 
-      const testStudentPromise = TestStudent.findOne({caso: caso._id}).session(session);
       
-      if(testStudentPromise){
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).send({ error: "Error al eliminar caso, tiene test ejecutados.." });
-      }
-
       if (student) {
         await Person.findByIdAndRemove(student.person).session(session);
         await Student.findByIdAndRemove(student._id).session(session);
+        console.log("Se eliminaron el estudiante y persona vinculada")
       }
-      
+    
+    //Elimina el caso   
     await caso.remove();
-    res.send({ message: "Caso deleted successfully!" });
+    //Cierra sesion
+    await session.commitTransaction();
+    session.endSession();
+
+    res.send({ message: "Caso eliminado con exito!" });
   }  catch (error) {
     console.log(error);
     await session.abortTransaction();
     session.endSession();
-    res.status(400).send({ error: "Error creating Caso" });
+    res.status(400).send({ error: "Error al elimnar el caso" });
   }
 };
