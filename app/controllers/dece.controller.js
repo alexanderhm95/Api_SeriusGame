@@ -20,7 +20,7 @@ exports.createDece = async (req, res) => {
     const { CI, name, lastName, address, phone, email, nameInstitution } = req.body;
 
     //Verificamos la validez de la cedula
-    const validateCard = await validateIDCard(CI).session(session);
+    const validateCard = await validateIDCard(CI)
 
     //Emitimos un error en caso de que la cedula sea erronea
     if (!validateCard) {
@@ -31,8 +31,8 @@ exports.createDece = async (req, res) => {
     }
 
     //Verifica  si existen el CI o correo en otras cuentas
-    const isCINotDuplicated = await Person.findOne({ CI }).exec().session(session);
-    const isEmailNotDuplicated = await Person.findOne({ email }).exec().session(session);
+    const isCINotDuplicated = await Person.findOne({ CI }).session(session);
+    const isEmailNotDuplicated = await Person.findOne({ email }).session(session);
     
     //si el email ya esta registrado retornamos un error
     if (isCINotDuplicated) {
