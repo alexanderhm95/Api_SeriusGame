@@ -22,13 +22,15 @@ exports.createTeacher = async (req, res) => {
     
     //Emitimos un error en caso de que la cedula sea erronea
    if (!validateCard) {
+      await session.abortTransaction();
+      session.endSession();
       console.log("La cédula que ingresaste es inválida");
       return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
     }
 
         //Verifica  si existen el CI o correo en otras cuentas
-    const isCINotDuplicated = await Person.findOne({ CI }).exec().session(session);
-    const isEmailNotDuplicated = await Person.findOne({ email }).exec().session(session);
+    const isCINotDuplicated = await Person.findOne({ CI }).session(session);
+    const isEmailNotDuplicated = await Person.findOne({ email }).session(session);
     
     //si el email ya esta registrado retornamos un error
     if (isCINotDuplicated) {
@@ -50,7 +52,7 @@ exports.createTeacher = async (req, res) => {
     }
 
     //Verifica la existencia de la institucion 
-    const existingInstitution = await Institution.findOne({ nameInstitution });
+    const existingInstitution = await Institution.findOne({ nameInstitution }).session(session)
     //Emite un error si la institucion no existe
     if (!existingInstitution) {
       await session.abortTransaction();
@@ -64,19 +66,19 @@ exports.createTeacher = async (req, res) => {
     //Genera una contraseña de Mayusculas, minusculas y numeros
     const pass =  generatorPass();
     //Encripta la contraseña
-    const hashedPassword = await encrypt(pass).session(session);
-    //Guarda los datos para enviar el correo.
+    const hashedPassword = await encrypt(pass)
+        //Guarda los datos para enviar el correo.
     const subject = 'SeriusGame - Nueva cuenta'
     const operation = 0;
 
 
 
-    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id });
-    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "TEACHER" });
-    await Teacher.create({ user: user._id });
+    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id })
+    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "TEACHER" })
+    await Teacher.create({ user: user._id })
 
    //Enviamos el correo  con los datos 
-    const result = await sendRecoveryCodeEmail(email, pass , subject, operation).session(session);
+    const result = await sendRecoveryCodeEmail(email, pass , subject, operation)
     if (result) {
       console.log(`Código enviado exitosamente`);
     } else {

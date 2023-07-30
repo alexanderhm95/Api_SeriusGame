@@ -66,17 +66,17 @@ exports.createDece = async (req, res) => {
     //Genera una contraseña de Mayusculas, minusculas y numeros
     const pass =  generatorPass();
     //Encripta la contraseña
-    const hashedPassword = await encrypt(pass).session(session);
+    const hashedPassword = await encrypt(pass)
     //Guarda los datos para enviar el correo.
     const subject = 'SeriusGame - Nueva cuenta'
     const operation = 0;
 
-    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id }).session(session);
-    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" }).session(session);
-    await Dece.create({ user: user._id}).session(session);
+    const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id })
+    const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "DECE" })
+    await Dece.create({ user: user._id})
 
     //Enviamos el correo  con los datos 
-    const result = await sendRecoveryCodeEmail(email, pass , subject, operation).session(session);
+    const result = await sendRecoveryCodeEmail(email, pass , subject, operation)
     if (result) {
       console.log(`Código enviado exitosamente`);
     } else {
