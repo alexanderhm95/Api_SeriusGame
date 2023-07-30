@@ -47,6 +47,7 @@ exports.update = async (req, res) => {
     let srcImageNew  = ''; 
     let srcImageOld = ''; 
   try {
+    console.log("llega el id",req.params.id)
     const { data } = req.body;
 
     const testImagesOld = await TestImages.findById(req.params.id);
@@ -62,7 +63,7 @@ exports.update = async (req, res) => {
 
    const countSection = await TestImages.find({section:test.section}).lean()
     
-    if((countSection.length-1) >= 3){
+    if((countSection.length) > 3){
       return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
     }
 

@@ -493,6 +493,7 @@ exports.findAll = async (req, res) => {
     const { id } = req.params;
 
     const dece = await Dece.findOne({ user: id }).lean();
+    console.log(dece)
 
     const casos = await Caso.aggregate([
       {
