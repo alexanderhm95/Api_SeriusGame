@@ -187,6 +187,7 @@ exports.update = async (req, res) => {
     } = req.body;
 
 
+
     //Busca la existencia del dece 
     const student = await Student.findById(idStudent).session(session);
     //Busca la existencia de la persona
@@ -832,25 +833,24 @@ exports.getCaso = async (req, res) => {
       id: caso._id,
       dateStart: caso.dateStart || null,
       idStudent: caso.student._id || null,
-      ciStudent: caso.student?.person?.CI || "no asignado",
-      nameStudent: caso.student?.person?.name || "no asignado",
-      lastNameStudent: caso.student?.person?.lastName || "no asignado",
-      addressStudent: caso.student?.person?.address || "no asignado",
-      phoneStudent: caso.student?.person?.phone || "no asignado",
-      ageStudent: caso.student?.person?.age || "no asignado",
-      gender: caso.student?.person?.gender || "no asignado",
+      ciStudent: caso.student?.person?.CI || null,
+      nameStudent: caso.student?.person?.name || null,
+      lastNameStudent: caso.student?.person?.lastName || null,
+      addressStudent: caso.student?.person?.address || null,
+      phoneStudent: caso.student?.person?.phone || null,
+      ageStudent: caso.student?.person?.age || null,
+      gender: caso.student?.person?.gender || null,
       nameInstitutionStudent:
-        caso.student?.person?.institution?.nameInstitution || "no asignado",
-      grade: caso.student?.grade || "no asignado",
-      parallel: caso.student?.parallel || "no asignado",
-      ciTeacher: caso.teacher?.user?.person?.CI || "no asignado",
-      nameTeacher: caso.teacher?.user?.person?.name || "no asignado",
-      lastNameTeacher: caso.teacher?.user?.person?.lastName || "no asignado",
-      emailTeacher: caso.teacher?.user?.person?.email || "no asignado",
-      ciDece: caso.dece?.user?.person?.CI || "no asignado",
-      nameDece: caso.dece?.user?.person?.name || "no asignado",
-      lastNameDece: caso.dece?.user?.person?.lastName || "no asignado",
-      emailDece: caso.dece?.user?.person?.email || "no asignado",
+        caso.student?.person?.institution?.nameInstitution || null,
+      grade: caso.student?.grade || null,
+      parallel: caso.student?.parallel || null,
+      ciTeacher: caso.teacher?.user?.person?.CI || null,
+      lastNameTeacher: caso.teacher?.user?.person?.lastName || null,
+      emailTeacher: caso.teacher?.user?.person?.email || null,
+      ciDece: caso.dece?.user?.person?.CI || null,
+      nameDece: caso.dece?.user?.person?.name || null,
+      lastNameDece: caso.dece?.user?.person?.lastName || null,
+      emailDece: caso.dece?.user?.person?.email || null,
 
     };
 
