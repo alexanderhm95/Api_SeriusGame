@@ -58,7 +58,7 @@ exports.findAll = async (req, res) => {
             lastNameStudent: student.lastName,
             ciTeacher: teacher?.CI ? teacher.CI : null,
             nameTeacher: teacher?.name ? teacher.name : null,
-            lastNameTeacher: teacher?.lastName ? teacher.name : null,
+            lastNameTeacher: teacher?.lastName ? teacher.lastName : null,
             createAt: testTeacher?.createdAt ? testTeacher.createdAt : null,
           };
         })
