@@ -141,7 +141,7 @@ exports.getDeces = async (req, res) => {
   }
 };
 
-// Find a single dece with a deceId
+// Find a single dece with a id
 exports.getDece = async (req, res) => {
   try {
     const { id } = req.params;
@@ -184,7 +184,7 @@ exports.getDece = async (req, res) => {
   }
 };
 
-// Update a dece identified by the deceId in the request
+// Update a dece identified by the id in the request
 exports.updateDece = async (req, res) => {
   console.log(req.body);
   const session = await mongoose.startSession();
@@ -378,7 +378,7 @@ exports.updateDece = async (req, res) => {
 };
 
 
-// Delete a dece with the specified deceId in the request
+// Delete a dece with the specified id in the request
 exports.deleteDece = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -403,20 +403,20 @@ exports.deleteDece = async (req, res) => {
       return res.status(404).send({ error: "Dece no encontrado" });
     }
 
-    const casoCount = await Caso.countDocuments({ dece: deceId }).session(
+    const casoCount = await Caso.countDocuments({ dece: id }).session(
       session
     );
 
     if (dece.user.person === null && casoCount === 0) {
       await User.findByIdAndRemove(dece.user._id).session(session);
-      await Dece.findByIdAndRemove(deceId).session(session);
+      await Dece.findByIdAndRemove(id).session(session);
       await session.commitTransaction();
       session.endSession();
       return res.status(200).send({ message: "Dece eliminado correctamente" });
     }
 
     if (dece.user === null && casoCount === 0) {
-      await Dece.findByIdAndRemove(deceId).session(session);
+      await Dece.findByIdAndRemove(id).session(session);
       await session.commitTransaction();
       session.endSession();
       return res.status(200).send({ message: "Dece eliminado correctamente" });
@@ -432,7 +432,7 @@ exports.deleteDece = async (req, res) => {
 
     await Person.findOneAndRemove({ CI: dece.user.person.CI }).session(session);
     await User.findByIdAndRemove(dece.user._id).session(session);
-    await Dece.findByIdAndRemove(deceId).session(session);
+    await Dece.findByIdAndRemove(id).session(session);
 
     await session.commitTransaction();
     session.endSession();
