@@ -426,7 +426,7 @@ exports.loginStudent = async (req, res) => {
       return res.status(400).send({ message: "Código expirado" });
     }
     console.log(student);
-    let cédula = student.person.CI;
+    let cedula = student.person.CI;
     const response ={
       id: student._id,
       name: `${student.person.name} ${student.person.lastName}`,
@@ -435,7 +435,7 @@ exports.loginStudent = async (req, res) => {
     };
     const token = generateToken(response)
     const data ={
-      cédula,
+      cedula,
       token
     }
     console.log(data)

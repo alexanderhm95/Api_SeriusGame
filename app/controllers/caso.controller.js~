@@ -334,7 +334,7 @@ exports.testStudent = async (req, res) => {
 
     // Verificar si el usuario existe
     if (caso.length == 0) {
-        console.log("Usuario no encontrado o borrado previamente")
+        console.log()
       return res
         .status(400)
         .send({ error: "Usuario no encontrado o borrado previamente" });
