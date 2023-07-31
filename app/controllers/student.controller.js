@@ -28,10 +28,10 @@ exports.createStudent = async (req, res) => {
       parallel,
     } = req.body;
 
-    //Verificamos la validez de la cedula
+    //Verificamos la validez de la cédula
     const validateCard = await validateIDCard(CI).session(session);
 
-    //Emitimos un error en caso de que la cedula sea erronea
+    //Emitimos un error en caso de que la cédula sea errónea
     if (!validateCard) {
       await session.abortTransaction();
       session.endSession();
@@ -44,12 +44,12 @@ exports.createStudent = async (req, res) => {
   
     //si el email ya esta registrado retornamos un error
     if (isCINotDuplicated) {
-      console.log("La cédula pertenecea un usuario registrado")
+      console.log("La cédula pertenece a un usuario registrado")
       await session.abortTransaction();
       session.endSession();
       return res
         .status(400)
-        .send({ error: "La cédula pertenecea un usuario registrado" });
+        .send({ error: "La cédula pertenece a un usuario registrado" });
     }
 
     
@@ -129,7 +129,7 @@ exports.getStudents = async (req, res) => {
 
     res
       .status(200)
-      .send({ message: "Estudiantes encontrados con exito!", listaStudent });
+      .send({ message: "Estudiantes encontrados con éxito!", listaStudent });
   } catch (error) {
     console.log(error);
     res.status(400).send(error + "Error al obtener los estudiantes");
@@ -220,7 +220,7 @@ exports.updateStudent = async (req, res) => {
         .status(400)
         .send({ error: "El estudiante no se encuentra registrado" });
     }
-    //Verifica la validez de la cedula
+    //Verifica la validez de la cédula
     const validateCard = await validateIDCard(CI);
 
     if (!validateCard) {
@@ -235,7 +235,7 @@ exports.updateStudent = async (req, res) => {
     //Verifica  si existen el CI o correo en otras cuentas
     const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
  
-    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    //Emite un error en el caso de que la cédula pertenezca a otro usuario
     if (isCINotDuplicated){
       await session.abortTransaction();
       session.endSession();
@@ -423,10 +423,10 @@ exports.loginStudent = async (req, res) => {
     }
 
     if (student.passwordTemporalyExpiration < Date.now()) {
-      return res.status(400).send({ message: "Codigo expirado" });
+      return res.status(400).send({ message: "Código expirado" });
     }
     console.log(student);
-    let cedula = student.person.CI;
+    let cédula = student.person.CI;
     const response ={
       id: student._id,
       name: `${student.person.name} ${student.person.lastName}`,
@@ -435,7 +435,7 @@ exports.loginStudent = async (req, res) => {
     };
     const token = generateToken(response)
     const data ={
-      cedula,
+      cédula,
       token
     }
     console.log(data)

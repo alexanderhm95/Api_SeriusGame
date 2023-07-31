@@ -35,23 +35,23 @@ exports.create = async (req, res) => {
       parallelStudent,
       ciTeacher, //Docente para el caso
       idDece, //Dece para el caso
-      nameInstitution, //Institucion para el docente
+      nameInstitution, //institución para el docente
     } = req.body;
 
-    //Comprueba la cedula
+    //Comprueba la cédula
     const validateCard = await validateIDCard(ciStudent);
 
-    //Si la cedula es invalida este emitira un mensaje de error
+    //Si la cédula es invalida este emitirá un mensaje de error
     if (!validateCard) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).send({ error: "La cédula que ingresaste es inválida" });
     }
 
-    //Comprueba la existencia de la institucion
+    //Comprueba la existencia de la institución
     const institution = await Institution.findOne({ nameInstitution }).session(session);
 
-    //Si la institucion no es encontrada este emitira un mensaje de error 
+    //Si la institución no es encontrada este emitirá un mensaje de error 
     if (!institution) {
       await session.abortTransaction();
       session.endSession();
@@ -155,12 +155,12 @@ exports.create = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.status(201).send({ message: "Caso created successfully!" });
+    res.status(201).send({ message: "Caso creado con éxito!" });
   } catch (error) {
     console.log(error);
     await session.abortTransaction();
     session.endSession();
-    res.status(400).send({ error: "Error creating Caso" });
+    res.status(400).send({ error: "Error al crear el caso" });
   }
 };
 
@@ -204,7 +204,7 @@ exports.update = async (req, res) => {
         .status(400)
         .send({ error: "El estudiante no se encuentra registrado" });
     }
-    //Verifica la validez de la cedula
+    //Verifica la validez de la cédula
     const validateCard = await validateIDCard(ciStudent);
 
     if (!validateCard) {
@@ -219,7 +219,7 @@ exports.update = async (req, res) => {
     //Verifica  si existen el CI o correo en otras cuentas
     const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: ciStudent }).exec();
  
-    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    //Emite un error en el caso de que la cédula pertenezca a otro usuario
     if (isCINotDuplicated){
       await session.abortTransaction();
       session.endSession();
@@ -480,10 +480,10 @@ exports.testTeacher = async (req, res) => {
       diagnostic: diagnostic,
     }).save();
 
-    res.status(201).send({ message: "TestTeacher created successfully!" });
+    res.status(201).send({ message: "Test Docente creado con éxito!" });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: error + "Error creating Caso" });
+    res.status(400).send({ error: error + "Error al crear Test Docente" });
   }
 };
 
@@ -679,10 +679,10 @@ exports.getAllStudentsXTeacher = async (req, res) => {
         };
       })
     );
-    res.status(200).send({ message: "Datos extraidos", data: listCaso });
+    res.status(200).send({ message: "Datos  recuperados con éxito", data: listCaso });
   } catch (error) {
     console.log(error);
-    res.status(500).send({ error: "Error retrieving caso" });
+    res.status(500).send({ error: "Error al recuperar caso" });
   }
 };
 
@@ -860,14 +860,7 @@ exports.getCaso = async (req, res) => {
   }
 };
 
-exports.deleteAll = async (req, res) => {
-  try {
-    await Caso.deleteMany();
-    res.send({ message: "caso deleted successfully!" });
-  } catch (error) {
-    res.status(500).send({ error: error + "Error deleting caso" });
-  }
-};
+
 
 exports.delete = async (req, res) => {
   const session = await mongoose.startSession();
@@ -905,11 +898,11 @@ exports.delete = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.send({ message: "Caso eliminado con exito!" });
+    res.send({ message: "Caso eliminado con éxito!" });
   }  catch (error) {
     console.log(error);
     await session.abortTransaction();
     session.endSession();
-    res.status(400).send({ error: "Error al elimnar el caso" });
+    res.status(400).send({ error: "Error al eliminar el caso" });
   }
 };

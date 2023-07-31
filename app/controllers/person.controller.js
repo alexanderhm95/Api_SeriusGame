@@ -5,7 +5,7 @@ const Teacher = require("../models/teacher.model");
 const Dece = require("../models/dece.model");
 const Institution = require("../models/institution.model");
 
-//metodo para crear una persona en la base de datos
+//método para crear una persona en la base de datos
 exports.createPerson = async (req, res) => {
   console.log(req.body);
   try {
@@ -31,15 +31,15 @@ exports.createPerson = async (req, res) => {
       });
     }
     await person.save();
-    console.log("Persona creada con eito");
-    res.status(201).send({ message: "Persona creada con exito", person });
+    console.log("Persona creada con éxito");
+    res.status(201).send({ message: "Persona creada con éxito", person });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error + "Error al crear la persona" });
   }
 };
 
-//metodo para obtener todas las personas de la base de datos
+//método para obtener todas las personas de la base de datos
 exports.getPersons = async (req, res) => {
   try {
     const persons = await Person.find()
@@ -95,7 +95,7 @@ exports.getPersons = async (req, res) => {
   }
 };
 
-//metodo para obtener una persona de la base de datos
+//método para obtener una persona de la base de datos
 exports.getPerson = async (req, res) => {
   try {
     const { id } = req.params;
@@ -106,7 +106,7 @@ exports.getPerson = async (req, res) => {
   }
 };
 
-//metodo para actualizar una persona de la base de datos
+//método para actualizar una persona de la base de datos
 exports.updatePerson = async (req, res) => {
   console.log("Llegue a person...");
   console.log(req.body);
@@ -127,13 +127,13 @@ exports.updatePerson = async (req, res) => {
     });
     res
       .status(200)
-      .send({ message: "Persona actualizada con exito", personUpdate });
+      .send({ message: "Persona actualizada con éxito", personUpdate });
   } catch (error) {
     res.status(400).send(error + "Error al actualizar la persona");
   }
 };
 
-//metodo para eliminar una persona de la base de datos
+//método para eliminar una persona de la base de datos
 exports.deletePerson = async (req, res) => {
   try {
     const { id } = req.params;

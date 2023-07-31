@@ -79,7 +79,7 @@ exports.findAll = async (req, res) => {
       .send({ message: "Datos obtenidos correctamente", data: filteredListTests });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: error + "Error finding testStudent" });
+    res.status(400).send({ error: error + "Error obtener el testStudent" });
   }
 };
 
@@ -90,7 +90,7 @@ exports.deleteOne = async (req, res) => {
     res.status(200).send({ message: "Test Student eliminado correctamente" });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: error + "Error deleting testStudent" });
+    res.status(400).send({ error: error + "Error al eliminar testStudent" });
   }
 };
 
@@ -99,7 +99,7 @@ exports.deleteAll = async (req, res) => {
     const testStudent = await TestStudent.deleteMany();
     res.status(200).send(testStudent);
   } catch (error) {
-    res.status(400).send({ error: error + "Error deleting testStudent" });
+    res.status(400).send({ error: error + "Error al eliminar testStudent" });
   }
 };
 
@@ -159,7 +159,7 @@ exports.getTestStudent = async (req, res) => {
     const test = await TestStudent.findOne({ caso: req.params.id });
     res.status(200).send(test);
   } catch (error) {
-    res.status(400).send({ error: error + "Error finding testStudent" });
+    res.status(400).send({ error: error + "Error al encontrar testStudent" });
   }
 };
 

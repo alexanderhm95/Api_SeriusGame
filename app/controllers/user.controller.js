@@ -9,7 +9,7 @@ const Dece = require("../models/dece.model");
 const Caso = require("../models/caso.model");
 const { encrypt } = require("../utils/helpers/handle.password");
 
-//metodo para crear un usuario en la base de datos Listo
+//método para crear un usuario en la base de datos Listo
 exports.createUser = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -18,10 +18,10 @@ exports.createUser = async (req, res) => {
     //datos del nuevo usuario
     const { CI, name, lastName, address, phone, email, password } = req.body;
 
-    //verifica la cedula
+    //verifica la cédula
     const validateCard = await validateIDCard(CI);
 
-    //Emite un error si la cedula es invalida
+    //Emite un error si la cédula es invalida
     if (!validateCard) {
       await session.abortTransaction();
       session.endSession();
@@ -41,7 +41,7 @@ exports.createUser = async (req, res) => {
       session.endSession();
       return res
         .status(400)
-        .send({ error: "La cédula pertenecea un usuario registrado" });
+        .send({ error: "La cédula pertenecen un usuario registrado" });
     }
 
     if (isEmailNotDuplicated) {
@@ -49,7 +49,7 @@ exports.createUser = async (req, res) => {
       session.endSession();
       return res
         .status(400)
-        .send({ error: "El coreeo pertenece a un usuario registrado" });
+        .send({ error: "El correo pertenece a un usuario registrado" });
     }
 
     //creamos la persona
@@ -84,7 +84,7 @@ exports.createUser = async (req, res) => {
   }
 };
 
-//metodo para obtener todos los usuarios de la base de datos Listo
+//método para obtener todos los usuarios de la base de datos Listo
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find()
@@ -112,7 +112,7 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-//metodo para obtener un usuario de la base de datos Listo
+//método para obtener un usuario de la base de datos Listo
 exports.getUser = async (req, res) => {
   try {
     //Desestructuramos el body
@@ -147,7 +147,7 @@ exports.getUser = async (req, res) => {
   }
 };
 
-//metodo para actualizar un usuario de la base de datos
+//método para actualizar un usuario de la base de datos
 //No esta terminado
 exports.updateUser = async (req, res) => {
   console.log(req.body)
@@ -161,7 +161,7 @@ exports.updateUser = async (req, res) => {
 
     //Busca la existencia del usuario
     const user = await User.findById(id).lean()
-    //Busca la ecistencia de la persona vinculada al usuario
+    //Busca la existencia de la persona vinculada al usuario
     const person = await Person.findById(user.person).lean()
 
     if(!user || !person){
@@ -173,7 +173,7 @@ exports.updateUser = async (req, res) => {
         .send({ error: "El usuario  no existe" });
     }
 
-    //Verifica la validez de la cedula
+    //Verifica la validez de la cédula
     const validateCard = await validateIDCard(ciUser);
 
     if (!validateCard) {
@@ -189,7 +189,7 @@ exports.updateUser = async (req, res) => {
     const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: ciUser }).exec();
     const isEmailNotDuplicated = await Person.findOne({ _id: { $ne: person._id }, email: email }).exec();
 
-    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    //Emite un error en el caso de que la cédula pertenezca a otro usuario
     if (isCINotDuplicated){
       await session.abortTransaction();
       session.endSession();
@@ -259,7 +259,7 @@ exports.updateUserStatus = async (req, res) => {
       ? "Usuario activado con éxito"
       : "Usuario desactivado con éxito";
 
-    //Retornamos el mensaje de exito
+    //Retornamos el mensaje de éxito
     res.status(200).send({ message: successMessage });
   } catch (error) {
     console.log(error);
@@ -289,7 +289,7 @@ exports.changePasswordUser = async (req, res) => {
       return res.status(400).send({ error: "Usuario no encontrado" });
     }
 
-    //generamos una contraseña randomica con Mayusculas, minusculas y numeros
+    //generamos una contraseña randomInt con Mayúsculas, minúsculas y números
     const pass = generatorPass();
 
     //Encriptamos la contraseña
@@ -313,8 +313,8 @@ exports.changePasswordUser = async (req, res) => {
       console.log(`Error al enviar el código`);
     }
 
-    //Retornamos el mensaje de exito
-    res.status(200).send({ message: "Renovacion exitosa" });
+    //Retornamos el mensaje de éxito
+    res.status(200).send({ message: "Renovación exitosa" });
   } catch (error) {
     console.log(error);
     res
@@ -324,7 +324,7 @@ exports.changePasswordUser = async (req, res) => {
 };
 
 
-//metodo para eliminar un usuario de la base de datos
+//método para eliminar un usuario de la base de datos
 exports.deleteUser = async (req, res) => {
   
   const session = await mongoose.startSession();
@@ -372,7 +372,7 @@ exports.deleteUser = async (req, res) => {
 
     //Si existe  un vinculo a un dece
     if(deceFind){
-        //Verfica si tiene casos asignados
+        //Verifica si tiene casos asignados
         const casoCount = await Caso.countDocuments({ dece: deceFind._id }).session(session);
         //Si no tiene casos asignados
         if(casoCount > 0){

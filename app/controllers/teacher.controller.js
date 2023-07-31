@@ -17,10 +17,10 @@ exports.createTeacher = async (req, res) => {
   try {
     const { CI, name, lastName, address, phone, email, nameInstitution } = req.body;
 
-    //Verificamos la validez de la cedula
+    //Verificamos la validez de la cédula
     const validateCard = await validateIDCard(CI);
     
-    //Emitimos un error en caso de que la cedula sea erronea
+    //Emitimos un error en caso de que la cédula sea errónea
    if (!validateCard) {
       await session.abortTransaction();
       session.endSession();
@@ -34,16 +34,16 @@ exports.createTeacher = async (req, res) => {
     
     //si el email ya esta registrado retornamos un error
     if (isCINotDuplicated) {
-      console.log("La cédula pertenecea un usuario registrado")
+      console.log("La cédula pertenece a un usuario registrado")
       await session.abortTransaction();
       session.endSession();
       return res
         .status(400)
-        .send({ error: "La cédula pertenecea un usuario registrado" });
+        .send({ error: "La cédula pertenece a un usuario registrado" });
     }
 
     if (isEmailNotDuplicated) {
-      console.log("El correo pertenecea un usuario registrado")
+      console.log("El correo pertenece a un usuario registrado")
       await session.abortTransaction();
       session.endSession();
       return res
@@ -51,9 +51,9 @@ exports.createTeacher = async (req, res) => {
         .send({ error: "El correo pertenece a un usuario registrado" });
     }
 
-    //Verifica la existencia de la institucion 
+    //Verifica la existencia de la institución 
     const existingInstitution = await Institution.findOne({ nameInstitution }).session(session)
-    //Emite un error si la institucion no existe
+    //Emite un error si la institución no existe
     if (!existingInstitution) {
       await session.abortTransaction();
       session.endSession();
@@ -63,7 +63,7 @@ exports.createTeacher = async (req, res) => {
 
   
    
-    //Genera una contraseña de Mayusculas, minusculas y numeros
+    //Genera una contraseña de Mayúsculas, minúsculas y números
     const pass =  generatorPass();
     //Encripta la contraseña
     const hashedPassword = await encrypt(pass)
@@ -277,7 +277,7 @@ exports.updateTeacher = async (req, res) => {
         .send({ error: "El docente no se encuentra registrado" });
     }
 
-    //Verifica la validez de la cedula
+    //Verifica la validez de la cédula
     const validateCard = await validateIDCard(CI);
 
     if (!validateCard) {
@@ -293,7 +293,7 @@ exports.updateTeacher = async (req, res) => {
     const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
     const isEmailNotDuplicated = await Person.findOne({ _id: { $ne: person._id }, email: email }).exec();
 
-    //Emite un error en el caso de qque la cedula pertenezca a otro usuario
+    //Emite un error en el caso de que la cédula pertenezca a otro usuario
     if (isCINotDuplicated){
       await session.abortTransaction();
       session.endSession();
@@ -325,7 +325,7 @@ exports.updateTeacher = async (req, res) => {
         .send({ error: "La institución no está registrada" });
     }
 
-      //Si el docente se cambia de institucion..
+      //Si el docente se cambia de institución..
     if (person.institution.nameInstitution !== nameInstitution) {
       
       try{ 
@@ -340,7 +340,7 @@ exports.updateTeacher = async (req, res) => {
 
         }
       } catch (error) {
-        // Manejo de errores durante la reasignación de casos
+        // Manejo de errores durante la resignación de casos
         console.log("Error al reasignar casos:", error);
         return res.status(400).send({ error: "Error al reasignar casos" });
       }
@@ -409,7 +409,7 @@ exports.deleteTeacher = async (req, res) => {
 
     if (teacher.user.person === null && casoCount === 0) {
       await User.findByIdAndRemove(teacher.user._id).session(session);
-      await Teacher.findByIdAndRemove(deacherId).session(session);
+      await Teacher.findByIdAndRemove(teacherId).session(session);
       await session.commitTransaction();
       session.endSession();
       return res.status(200).send({ message: "Docente eliminado correctamente" });

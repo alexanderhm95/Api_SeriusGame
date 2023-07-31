@@ -21,7 +21,7 @@ exports.create = async (req, res) => {
     const countSection = await TestImages.find({section:test.section}).lean()
     
     if(countSection.length >= 3){
-    return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
+    return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
 }
     srcImageTmp = test.link;
     await test.save();
@@ -32,9 +32,9 @@ exports.create = async (req, res) => {
 
     fs.unlink(deleteFile, (err) => {
       if (err) {
-        console.log("Error deleting file:", err);
+        console.log("Error al eliminar archivo:", err);
       } else {
-        console.log("File deleted:", deleteFile);
+        console.log("Archivo eliminado:", deleteFile);
       }
     });
 
@@ -43,80 +43,89 @@ exports.create = async (req, res) => {
   }
 };
 
-exports.update = async (req, res) => {
-    let srcImageNew  = ''; 
-    let srcImageOld = ''; 
-  try {
-    console.log("llega el id",req.params.id)
-    const { data } = req.body;
+//exports.update = async (req, res) => {
+//    let srcImageNew  = ''; 
+//    let srcImageOld = ''; 
+//    console.log("==========================")
+//    console.log("========Llegue =========")
+//    console.log("==========================")
+//  try {
+//    console.log("llega el id",req)
 
-    const testImagesOld = await TestImages.findById(req.params.id);
+//    console.log("==========================")
+//    console.log("========Llegue =========")
+//    console.log("==========================")
+//    const { data } = req.body;
 
-    const testImages = JSON.parse(data);
+//    const testImagesOld = await TestImages.findById(req.params.id);
 
-    const test = {
-      name: testImages.name,
-      link: testImages.urlImage,
-      value: testImages.value,
-      section: testImages.section,
-    };
+//    console.log(testImagesOld)
 
-   const countSection = await TestImages.find({section:test.section}).lean()
+//    const testImages = JSON.parse(data);
+
+//    const test = {
+//      name: testImages.name,
+//      link: testImages.urlImage,
+//      value: testImages.value,
+//      section: testImages.section,
+//    };
+
+//   const countSection = await TestImages.find({section:test.section}).lean()
     
-    if((countSection.length) > 3){
-      return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
-    }
+//    if((countSection.length+1) > 3){
+//      return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
+//    }
 
-    srcImageNew  = tes.link;
-    srcImageOld = testImagesOld.link;
+//    srcImageNew  = tes.link;
+//    srcImageOld = testImagesOld.link;
     
-    testImagesOld.name=test.name;
-    testImagesOld.link=test.link;
-    testImagesOld.valuetest.value;
-    testImagesOld.section=test.section;
+//    testImagesOld.name=test.name;
+//    testImagesOld.link=test.link;
+//    testImagesOld.valuetest.value;
+//    testImagesOld.section=test.section;
 
 
 
-    //const updatedTestImages = await TestImages.findByIdAndUpdate(
-    //  req.params.id,
-    //  test,
-    //  { new: true }
-    //);
+//    //const updatedTestImages = await TestImages.findByIdAndUpdate(
+//    //  req.params.id,
+//    //  test,
+//    //  { new: true }
+//    //);
 
 
 
-    if (srcImageNew != srcImageOld) {
-      // Eliminar la imagen anterior
-      console.log("Entro a eliminar la imagen ",srcImageOld)
-      const deleteFile = resolve(__dirname, "..", `../${srcImageOld}`);
-      fs.unlink(deleteFile, (err) => {
-        if (err) {
-          console.log("Error deleting file:", err);
-        } else {
-          console.log("File deleted:", deleteFile);
-        }
-      });
-    }
+//    if (srcImageNew != srcImageOld) {
+//      // Eliminar la imagen anterior
+//      console.log("Entro a eliminar la imagen ",srcImageOld)
+//      const deleteFile = resolve(__dirname, "..", `../${srcImageOld}`);
+//      fs.unlink(deleteFile, (err) => {
+//        if (err) {
+//          console.log("Error al eliminar archivo:", err);
+//        } else {
+//          console.log("Archivo eliminado:", deleteFile);
+//        }
+//      });
+//    }
 
-    await testImagesOld.save();
+//    await testImagesOld.save();
 
-    res.status(200).send(updatedTestImages);
-  } catch (error) {
+//    res.status(200).send(updatedTestImages);
+//  } catch (error) {
 
-    const deleteFile = resolve(__dirname, "..", `../${srcImageNew}`);
+//    const deleteFile = resolve(__dirname, "..", `../${srcImageNew}`);
 
-    fs.unlink(deleteFile, (err) => {
-      if (err) {
-        console.log("Error deleting file:", err);
-      } else {
-        console.log("File deleted:", deleteFile);
-      }
-    });
+//    fs.unlink(deleteFile, (err) => {
+//      if (err) {
+//        console.log("Error al eliminar archivo:", err);
+//      } else {
+//        console.log("Archivo eliminado:", deleteFile);
+//      }
+//    });
 
-    console.log(error);
-    res.status(400).send({ error: "Error updating TestImages" });
-  }
-};
+//    console.log(error);
+//    res.status(400).send({ error: "Error al actualizar el Test Estudiante" });
+//  }
+//};
 
 const options = {
   defaultPage: 1,
@@ -125,14 +134,8 @@ const options = {
 
 exports.findAllPaginated = async (req, res) => {
   try {
-    const { page, limit } = req.query;
-    const currentPage = page ? parseInt(page) : options.defaultPage;
-    const pageSize = limit ? parseInt(limit) : options.defaultLimit;
-
-    const testImages = await TestImages.paginate({}, { page: currentPage, limit: pageSize }); 
-    const totalCount = await TestImages.countDocuments();
-
-    res.status(200).json({ message: "ok", data: {testImages, totalCount} });
+    const testImages = await TestImages.find().sort({ section: 1 });
+    res.status(200).json({ message: "ok", data: testImages });
   } catch (error) {
     console.error("Error getting TestImages:", error);
     res.status(400).json({ error: "Error getting TestImages" });
@@ -167,8 +170,9 @@ exports.update = async (req, res) => {
     let srcImageTmp  = ''; 
     let srcImageTmp2 = ''; 
   try {
+    const {id} = req.params;
     const { data } = req.body;
-    const testImagesOld = await TestImages.findById(req.params.id);
+    const testImagesOld = await TestImages.findById(id);
 
     const testImages = JSON.parse(data);
     const test = {
@@ -177,10 +181,11 @@ exports.update = async (req, res) => {
       value: testImages.value,
       section: testImages.section,
     };
-  const countSection = await TestImages.find({section:test.section}).lean()
+  const countSection = await TestImages.find({ _id: { $ne: id },section:test.section}).lean()
+  console.log(countSection.length)
     
-    if((countSection.length-1) >= 3){
-    return res.status(400).send({ error: "Solo se permiten 3 imagenes por sección" });
+    if((countSection.length) >= 3){
+    return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
 }
     const updatedTestImages = await TestImages.findByIdAndUpdate(
       req.params.id,
@@ -198,9 +203,9 @@ exports.update = async (req, res) => {
       const deleteFile = resolve(__dirname, "..", `../${srcImageTmp2}`);
       fs.unlink(deleteFile, (err) => {
         if (err) {
-          console.log("Error deleting file:", err);
+          console.log("Error al eliminar archivo:", err);
         } else {
-          console.log("File deleted:", deleteFile);
+          console.log("Archivo eliminado:", deleteFile);
         }
       });
     }
@@ -211,14 +216,14 @@ exports.update = async (req, res) => {
 
     fs.unlink(deleteFile, (err) => {
       if (err) {
-        console.log("Error deleting file:", err);
+        console.log("Error al eliminar archivo:", err);
       } else {
-        console.log("File deleted:", deleteFile);
+        console.log("Archivo eliminado:", deleteFile);
       }
     });
 
     console.log(error);
-    res.status(400).send({ error: "Error updating TestImages" });
+    res.status(400).send({ error: "Error al actualizar  Test Docente" });
   }
 };
 
@@ -233,27 +238,19 @@ exports.delete = async (req, res) => {
     fs.access(deleteFile, fs.constants.F_OK, (err) => {
       if (!err) {
         fs.unlink(deleteFile, (err) => {
-          console.log("file was deleted");
+          console.log("Archivo eliminado");
         });
       } else {
-        console.log("file does not exist");
+        console.log("Error al eliminar archivo");
       }
     });
 
     res
       .status(200)
-      .send({ message: "TestImages deleted successfully!", testImages });
+      .send({ message: "Pregunta del Test Estudiante!", testImages });
   } catch (error) {
-    res.status(400).send({ error: error + "Error deleting TestImages" });
+    res.status(400).send({ error: error + "Error al eliminar Test Student" });
   }
 };
 
-// // Delete all testImages from the database.
-exports.deleteAll = async (req, res) => {
-  try {
-    await TestImages.deleteMany({});
-    res.status(200).send({ message: "All TestImages deleted successfully!" });
-  } catch (error) {
-    res.status(400).send({ error: error + "Error deleting TestImages" });
-  }
-};
+

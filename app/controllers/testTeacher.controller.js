@@ -74,7 +74,7 @@ exports.findAll = async (req, res) => {
       .send({ message: "Datos obtenidos correctamente", data: filteredListTests });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: error + "Error finding testTeacher" });
+    res.status(400).send({ error: error + "Error al encontrar testTeacher" });
   }
 };
 
@@ -84,7 +84,7 @@ exports.getTestTeacher = async (req, res) => {
 
     res.status(200).send(test);
   } catch (error) {
-    res.status(400).send({ error: error + "Error finding testTeacher" });
+    res.status(400).send({ error: error + "Error al encontrar testTeacher" });
   }
 };
 
@@ -95,6 +95,6 @@ exports.deleteOne = async (req, res) => {
     res.status(200).send({ message: "Test Teacher eliminado correctamente" });
   } catch (error) {
     console.log(error);
-    res.status(400).send({ error: error + "Error deleting testTeacher" });
+    res.status(400).send({ error: error + "Error al eliminar testTeacher" });
   }
 };

@@ -11,10 +11,10 @@ exports.create = async (req, res) => {
             answer
         });
         await testQuestion.save();
-        res.status(201).send({ message: "TestQuestion created successfully!", testQuestion });
+        res.status(201).send({ message: "Pregunta cargada al Test Docente!", testQuestion });
     } catch (error) {
         console.log(error)
-        res.status(400).send({ error: error + "Error creating TestQuestion" });
+        res.status(400).send({ error: error + "Error al cargar pregunta de  Test Docente" });
     }
 }
 
@@ -23,7 +23,7 @@ exports.findAll = async (req, res) => {
     try {
         const testQuestions = await TestQuestion.find();
 
-        res.status(200).send({ message: "Preguntas cargadas con exito", data: testQuestions });
+        res.status(200).send({ message: "Preguntas cargadas con éxito", data: testQuestions });
     } catch (error) {
         res.status(400).send({ error: error + "Error getting TestQuestion" });
     }
@@ -54,7 +54,7 @@ exports.update = async (req, res) => {
         if (!testQuestion) {
             return res.status(400).send({ error: 'TestQuestion not found' });
         }
-        res.status(200).send({ message: "TestQuestion updated successfully!", testQuestion });
+        res.status(200).send({ message: "Pregunta del Test Docente actualizada!", testQuestion });
     } catch (error) {
         res.status(400).send({ error: error + "Error updating TestQuestion" });
     }
@@ -67,9 +67,9 @@ exports.delete = async (req, res) => {
         if (!testQuestion) {
             return res.status(400).send({ error: 'TestQuestion not found' });
         }
-        res.status(200).send({ message: "TestQuestion deleted successfully!" });
+        res.status(200).send({ message: "Pregunta del Test Docente eliminada correctamente" });
     } catch (error) {
-        res.status(400).send({ error: error + "Error deleting TestQuestion" });
+        res.status(400).send({ error: error + "Error al eliminar pregunta del Test Docente" });
     }
 }
 
@@ -77,8 +77,8 @@ exports.delete = async (req, res) => {
 exports.deleteAll = async (req, res) => {
     try {
         await TestQuestion.deleteMany();
-        res.status(200).send({ message: "All TestQuestions deleted successfully!" });
+        res.status(200).send({ message: "Eliminar todas las preguntas del docente!" });
     } catch (error) {
-        res.status(400).send({ error: error + "Error deleting TestQuestions" });
+        res.status(400).send({ error: error + "Error al eliminar los Test Docente" });
     }
 }

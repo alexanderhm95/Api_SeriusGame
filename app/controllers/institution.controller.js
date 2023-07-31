@@ -25,7 +25,7 @@ exports.createInstitution = async (req, res) => {
       emailInstitution,
     });
     await institution.save();
-    res.status(201).send({ message: "Institution created successfully" });
+    res.status(201).send({ message: "Institution creada con éxito" });
   } catch (error) {
     console.log(error);
     res.status(400).send(error + "Error al crear la institución");

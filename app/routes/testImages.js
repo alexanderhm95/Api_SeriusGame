@@ -11,6 +11,5 @@ router.get("/paginated",  checkAuth(['ADMIN','DECE']),   testImagesController.fi
 router.get("/:id",        checkAuth(['ADMIN','DECE']),  testImagesController.findOne);
 router.put("/:id",        checkAuth(['ADMIN','DECE']),  upload.single("singleFile"), testImagesController.update);
 router.delete("/:id",     checkAuth(['ADMIN','DECE']),  testImagesController.delete);
-router.delete("/",        checkAuth(['ADMIN','DECE']),  testImagesController.deleteAll);
 
 module.exports = router;
