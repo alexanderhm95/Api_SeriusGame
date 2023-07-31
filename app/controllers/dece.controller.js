@@ -387,7 +387,7 @@ exports.deleteDece = async (req, res) => {
 
     const {id} = req.params;
 
-    const dece = await Dece.findById(deceId)
+    const dece = await Dece.findById(id)
       .populate({
         path: "user",
         populate: {
