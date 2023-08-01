@@ -340,7 +340,7 @@ exports.deleteUser = async (req, res) => {
         select: "_id CI ",
       }).session(session);
 
-    cont adminCount = await User.find({role:'ADMIN'}).session(session);
+    const adminCount = await User.find({role:'ADMIN'}).session(session);
 
     if(adminCount<1){
       await session.abortTransaction();
