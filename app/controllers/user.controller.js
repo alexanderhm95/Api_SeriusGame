@@ -340,6 +340,14 @@ exports.deleteUser = async (req, res) => {
         select: "_id CI ",
       }).session(session);
 
+    cont adminCount = await User.find({role:'ADMIN'}).session(session);
+
+    if(adminCount<1){
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).send({ error: "Debe por lo menos conservar un Administrador" });
+
+    }
 
     if (!user) {
       await session.abortTransaction();
