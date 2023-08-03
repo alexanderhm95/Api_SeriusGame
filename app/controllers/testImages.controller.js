@@ -1,14 +1,11 @@
 const TestImages = require("../models/testImages.model");
 const { resolve } = require("path");
 const fs = require("fs");
-const path = require("path");
 const { shuffle } = require("../utils/helpers/tools.js")
 
-// Create and Save a new TestImages
+// Registro de preguntas para el test Imágenes
 exports.create = async (req, res) => {
-  let srcImageTmp = ""; // Inicializar la variable srcImageTmp
-  console.log(req.body);
-
+  let srcImageTmp = ""; 
   try {
     const { data } = req.body;
     const testImages = JSON.parse(data);
@@ -18,11 +15,14 @@ exports.create = async (req, res) => {
       value: testImages.value,
       section: testImages.section,
     });
-    const countSection = await TestImages.find({section:test.section}).lean()
+
+    //Comprueba el numero de preguntas con esa sección
+    const imageCountSection = await TestImages.countDocuments({ section: test.section });
     
-    if(countSection.length >= 3){
-    return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
-}
+    if(imageCountSection >= 3){
+      console.log("Solo se permiten 3 imágenes")
+      return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
+    }
     srcImageTmp = test.link;
     await test.save();
     res.status(201).send({ message: "ok", test });
@@ -39,106 +39,18 @@ exports.create = async (req, res) => {
     });
 
     console.log(error);
-    res.status(400).send({ error: error + "Error creating TestImages" });
+    res.status(400).send({ error: error + "Error al crear pregunta" });
   }
 };
 
-//exports.update = async (req, res) => {
-//    let srcImageNew  = ''; 
-//    let srcImageOld = ''; 
-//    console.log("==========================")
-//    console.log("========Llegue =========")
-//    console.log("==========================")
-//  try {
-//    console.log("llega el id",req)
-
-//    console.log("==========================")
-//    console.log("========Llegue =========")
-//    console.log("==========================")
-//    const { data } = req.body;
-
-//    const testImagesOld = await TestImages.findById(req.params.id);
-
-//    console.log(testImagesOld)
-
-//    const testImages = JSON.parse(data);
-
-//    const test = {
-//      name: testImages.name,
-//      link: testImages.urlImage,
-//      value: testImages.value,
-//      section: testImages.section,
-//    };
-
-//   const countSection = await TestImages.find({section:test.section}).lean()
-    
-//    if((countSection.length+1) > 3){
-//      return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
-//    }
-
-//    srcImageNew  = tes.link;
-//    srcImageOld = testImagesOld.link;
-    
-//    testImagesOld.name=test.name;
-//    testImagesOld.link=test.link;
-//    testImagesOld.valuetest.value;
-//    testImagesOld.section=test.section;
-
-
-
-//    //const updatedTestImages = await TestImages.findByIdAndUpdate(
-//    //  req.params.id,
-//    //  test,
-//    //  { new: true }
-//    //);
-
-
-
-//    if (srcImageNew != srcImageOld) {
-//      // Eliminar la imagen anterior
-//      console.log("Entro a eliminar la imagen ",srcImageOld)
-//      const deleteFile = resolve(__dirname, "..", `../${srcImageOld}`);
-//      fs.unlink(deleteFile, (err) => {
-//        if (err) {
-//          console.log("Error al eliminar archivo:", err);
-//        } else {
-//          console.log("Archivo eliminado:", deleteFile);
-//        }
-//      });
-//    }
-
-//    await testImagesOld.save();
-
-//    res.status(200).send(updatedTestImages);
-//  } catch (error) {
-
-//    const deleteFile = resolve(__dirname, "..", `../${srcImageNew}`);
-
-//    fs.unlink(deleteFile, (err) => {
-//      if (err) {
-//        console.log("Error al eliminar archivo:", err);
-//      } else {
-//        console.log("Archivo eliminado:", deleteFile);
-//      }
-//    });
-
-//    console.log(error);
-//    res.status(400).send({ error: "Error al actualizar el Test Estudiante" });
-//  }
-//};
-
-const options = {
-  defaultPage: 1,
-  defaultLimit: 6,
-};
 
 exports.findAllPaginated = async (req, res) => {
   try {
     const testImages = await TestImages.find().sort({ section: 1 });
-    res.status(200).json({ message: "ok", data: testImages });
+    res.status(200).json({ message: "Preguntas del test docente recuperadas", data: testImages });
   } catch (error) {
-    console.error("Error getting TestImages:", error);
-    res.status(400).json({ error: "Error getting TestImages" });
+    console.error("Error al cargar el test estudiante:", error);
+    res.status(400).json({ error: "Error al cargar el test estudiante" });
   }
 };
 
@@ -149,8 +61,8 @@ exports.findAll = async (req, res) => {
     const data = await shuffle(testImages) 
      res.status(200).send({ message: "ok", data});
   } catch (error) {
-    console.log(error)
-    res.status(400).send({ error: error + "Error getting TestImages" });
+    console.log("Error al cargar el test estudiante",error)
+    res.status(400).send({ error: "Error al cargar el test estudiante" });
   }
 };
 
