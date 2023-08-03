@@ -26,7 +26,7 @@ exports.create = async (req, res) => {
     const {
       ciStudent,
       nameStudent,
-      lastNameStudent,
+      lastNameStudent, 
       gender,
       ageStudent,
       addressStudent,
@@ -188,7 +188,7 @@ exports.update = async (req, res) => {
 
 
 
-    //Busca la existencia del dece 
+    //Busca la existencia del dece      
     const student = await Student.findById(idStudent).session(session);
     //Busca la existencia de la persona
     const person = await Person.findById(student.person)
