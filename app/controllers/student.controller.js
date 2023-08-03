@@ -425,7 +425,7 @@ exports.loginStudent = async (req, res) => {
     if (student.passwordTemporalyExpiration < Date.now()) {
       return res.status(400).send({ message: "Código expirado" });
     }
-    console.log(student);
+    console.log(`Ingreso estudiante ${student?.person?.name} cédula: ${student?.person?.CI} ` );
     let cedula = student.person.CI;
     const response ={
       id: student._id,
@@ -438,7 +438,6 @@ exports.loginStudent = async (req, res) => {
       cedula,
       token
     }
-    console.log(data)
     res.status(200).send({ message: "ok", data });
   } catch (error) {
     console.log(error);

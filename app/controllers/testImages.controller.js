@@ -56,6 +56,7 @@ exports.findAllPaginated = async (req, res) => {
 
 // Retrieve and return all testImages from the database.
 exports.findAll = async (req, res) => {
+  console.log("llega al Test Imagenes")
   try {
     const testImages = await TestImages.find();
     const data = await shuffle(testImages) 
