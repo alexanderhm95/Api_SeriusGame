@@ -149,6 +149,7 @@ exports.findAll = async (req, res) => {
     const data = await shuffle(testImages) 
      res.status(200).send({ message: "ok", data});
   } catch (error) {
+    console.log(error)
     res.status(400).send({ error: error + "Error getting TestImages" });
   }
 };
