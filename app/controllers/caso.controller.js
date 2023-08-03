@@ -580,7 +580,7 @@ const listaCasos = await Promise.all(casos.map(async (caso) => {
   };
 }));
 
-    console.log("Numero de casos: ", listaCasos);
+    console.log("Numero de casos encontrados: ", listaCasos.length);
 
 
     res
