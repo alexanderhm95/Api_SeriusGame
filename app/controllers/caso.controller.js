@@ -65,7 +65,7 @@ exports.create = async (req, res) => {
     if (personStudent) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).send({ error: "El estudiante ya se encuentra registrado" });
+      return res.status(400).send({ error: "La cédula pertenece a un usuario registrado" });
     }
     //Crea la persona 
     const person = new Person({
