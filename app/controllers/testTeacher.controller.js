@@ -81,21 +81,19 @@ exports.findAll = async (req, res) => {
 
 exports.getTestTeacher = async (req, res) => {
   try {
-    const answers = await TestTeacher.findOne({caso: req.params.id});
-    const test = answers.map(
-      (answer) => {
-        const select =  TestQuestion.findById(answer.refQuestion);
-        return {
-          name:select?.nameQuestion || null,
-          value: answer.valueAnswer  || 0
-        }
-      }
-    )
+    const answers = await TestTeacher.findOne({ caso: req.params.id });
+    const test = answers.map((answer) => {
+      const select = await TestQuestion.findById(answer.refQuestion);
+      return {
+        name: select?.nameQuestion || null,
+        value: answer.valueAnswer || 0,
+      };
+    });
 
     res.status(200).send(test);
   } catch (error) {
-    console.log(error)
-    res.status(400).send({ error: error + "Error al encontrar testTeacher" });
+    console.log(error);
+    res.status(400).send({ error: "Error al encontrar testTeacher" });
   }
 };
 
