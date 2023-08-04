@@ -1,4 +1,5 @@
 const TestTeacher = require("../models/testTeacher.model.js");
+const TestQuestion = require("../models/testQuestion.model.js");
 const Person = require("../models/person.model.js");
 const Teacher = require("../models/teacher.model.js");
 const Student = require("../models/student.model.js");
@@ -80,7 +81,17 @@ exports.findAll = async (req, res) => {
 
 exports.getTestTeacher = async (req, res) => {
   try {
-    const test = await TestTeacher.findOne({caso: req.params.id});
+    const answers = await TestTeacher.findOne({caso: req.params.id});
+    const test = answers.map(
+      (answer) => {
+        const select =  TestQuestion.findById(answer.refQuestion);
+        return {
+          name:select?.nameQuestion || null,
+          value: answer.valueAnswer  || 0
+        }
+      }
+    )
+
     res.status(200).send(test);
   } catch (error) {
     res.status(400).send({ error: error + "Error al encontrar testTeacher" });
