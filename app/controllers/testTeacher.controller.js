@@ -80,8 +80,7 @@ exports.findAll = async (req, res) => {
 
 exports.getTestTeacher = async (req, res) => {
   try {
-    const test = await TestTeacher.findById(req.params.id);
-
+    const test = await TestTeacher.findOne({caso: req.params.id});
     res.status(200).send(test);
   } catch (error) {
     res.status(400).send({ error: error + "Error al encontrar testTeacher" });
