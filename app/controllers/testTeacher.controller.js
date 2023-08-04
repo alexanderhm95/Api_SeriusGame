@@ -81,9 +81,9 @@ exports.findAll = async (req, res) => {
 
 exports.getTestTeacher = async (req, res) => {
   try {
-    const answers = await TestTeacher.findOne({ caso: req.params.id });
+    const testUp = await TestTeacher.findOne({ caso: req.params.id });
     const test = await Promise.all(
-      answers.map(async (answer) => {
+      testUp.answers.map(async (answer) => {
         const select = await TestQuestion.findById(answer.refQuestion);
         return {
           name: select?.nameQuestion || null,
