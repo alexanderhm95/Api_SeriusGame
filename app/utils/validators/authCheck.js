@@ -4,7 +4,7 @@ const Student = require("../../models/student.model");
 
 const checkAuth = (roles) => async (req, res, next) => {
   try {
-    //TODO: authorization: Bearer 1010101010101001010100
+    
     const token = req.headers.authorization.split(" ").pop(); //TODO:123123213
     const tokenData = verifyToken(token);
     console.log(

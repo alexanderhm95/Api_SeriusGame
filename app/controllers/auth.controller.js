@@ -83,7 +83,7 @@ exports.login = async (req, res) => {
   }
 };
 
-//Metodo para recuperar contraseña
+//Método para recuperar contraseña
 exports.recoverPassword = async (req, res) => {
   try {
     // Obtener el email del cuerpo de la solicitud
@@ -192,7 +192,7 @@ exports.validateRecoverCode = async (req, res) => {
       user.recoverCode = null;
       user.recoverCodeExp = null;
       await user.save();
-      return res.status(400).send({ error: "Código expirado" });
+      return res.status(400).send({ error: "Su código ha expirado" });
     }
 
     await user.save();
@@ -234,7 +234,7 @@ exports.changePassword = async (req, res) => {
     }
 
     if (userSearch[0].recoverCodeExp < Date.now()) {
-      console.log("Codigo expirado")
+      console.log("Código expirado")
        // Código validado correctamente, eliminar el código de recuperación y su fecha de expiración
     user.recoverCode = null;
     user.recoverCodeExp = null;
@@ -249,7 +249,7 @@ exports.changePassword = async (req, res) => {
     user.recoverCode = null;
     user.recoverCodeExp = null;
     await user.save();
-    res.status(200).send({ message: "Contraseña cambiada con exito" });
+    res.status(200).send({ message: "Contraseña cambiada con éxito" });
   } catch (error) {
     console.log(error)
     res.status(400).send(error + "Error al cambiar contraseña");

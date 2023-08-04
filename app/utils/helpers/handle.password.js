@@ -1,7 +1,8 @@
 const bcryptjs = require('bcryptjs');
+const longEncript = process.env.logEncript;
 
 const encrypt = async (password) => {
-    const hash = await bcryptjs.hash(password, 10);
+    const hash = await bcryptjs.hash(password, longEncript);
     return hash;
 }
 
