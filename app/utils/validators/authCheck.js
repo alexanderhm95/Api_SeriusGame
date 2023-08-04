@@ -16,8 +16,10 @@ const checkAuth = (roles) => async (req, res, next) => {
     const decodedToken = decodeToken(token);
 
     const existUser = await User.findById(decodedToken.payload.user);
+    const existStudent = await Student.findById(decodedToken.payload.user);
+   
 
-    if (tokenData && roles.includes(decodedToken.payload.role) && existUser) {
+    if (tokenData && roles.includes(decodedToken.payload.role) && (existUser || existStudent )) {
       next();
     } else {
       res.status(403);
