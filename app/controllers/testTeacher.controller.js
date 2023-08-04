@@ -94,6 +94,7 @@ exports.getTestTeacher = async (req, res) => {
 
     res.status(200).send(test);
   } catch (error) {
+    console.log(error)
     res.status(400).send({ error: error + "Error al encontrar testTeacher" });
   }
 };
