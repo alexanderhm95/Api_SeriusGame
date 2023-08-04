@@ -1,5 +1,6 @@
 const { verifyToken, decodeToken } = require("../helpers/handle.jwt");
 const User = require("../../models/user.model");
+const Student = require("../../models/student.model");
 
 const checkAuth = (roles) => async (req, res, next) => {
   try {
@@ -15,15 +16,14 @@ const checkAuth = (roles) => async (req, res, next) => {
 
     const decodedToken = decodeToken(token);
 
-    const existUser = await User.findById(decodedToken.payload.user);
-    const existStudent = await Student.findById(decodedToken.payload.user);
+    const existsUser = await User.findById(decodedToken.payload.user);
+    const existsStudent = await Student.findById(decodedToken.payload.user);
    
 
-    if (tokenData && roles.includes(decodedToken.payload.role) && (existUser || existStudent )) {
+    if (tokenData && roles.includes(decodedToken.payload.role) && (existsUser || existsStudent )) {
       next();
     } else {
-      res.status(403);
-      res.send({
+      res.status(403).send({
         error: "Acceso denegado. No tienes los permisos necesarios.",
       });
     }
