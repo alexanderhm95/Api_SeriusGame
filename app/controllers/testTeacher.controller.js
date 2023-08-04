@@ -82,13 +82,15 @@ exports.findAll = async (req, res) => {
 exports.getTestTeacher = async (req, res) => {
   try {
     const answers = await TestTeacher.findOne({ caso: req.params.id });
-    const test = answers.map((answer) => {
-      const select = await TestQuestion.findById(answer.refQuestion);
-      return {
-        name: select?.nameQuestion || null,
-        value: answer.valueAnswer || 0,
-      };
-    });
+    const test = await Promise.all(
+      answers.map(async (answer) => {
+        const select = await TestQuestion.findById(answer.refQuestion);
+        return {
+          name: select?.nameQuestion || null,
+          value: answer.valueAnswer || 0,
+        };
+      })
+    );
 
     res.status(200).send(test);
   } catch (error) {
@@ -96,6 +98,7 @@ exports.getTestTeacher = async (req, res) => {
     res.status(400).send({ error: "Error al encontrar testTeacher" });
   }
 };
+
 
 exports.deleteOne = async (req, res) => {
   try {
