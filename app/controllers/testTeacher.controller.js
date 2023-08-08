@@ -82,6 +82,7 @@ exports.findAll = async (req, res) => {
 exports.getTestTeacher = async (req, res) => {
   try {
     const testUp = await TestTeacher.findOne({ caso: req.params.id });
+    console.log(testUp)
     const test = await Promise.all(
       testUp.answers.map(async (answer) => {
         const select = await TestQuestion.findById(answer.refQuestion);
@@ -91,6 +92,7 @@ exports.getTestTeacher = async (req, res) => {
         };
       })
     );
+    console.log(test)
 
     res.status(200).send(test);
   } catch (error) {
