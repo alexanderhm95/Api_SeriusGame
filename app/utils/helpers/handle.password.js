@@ -1,8 +1,8 @@
-const bcryptjs = require('bcryptjs');
-const longEncript = process.env.logEncript;
+const bcryptjs = require('bcryptjs');//dotenv permite cargar variables de entorno
+require('dotenv').config();
 
 const encrypt = async (password) => {
-    const hash = await bcryptjs.hash(password, longEncript);
+    const hash = await bcryptjs.hash(password, 10);
     return hash;
 }
 
