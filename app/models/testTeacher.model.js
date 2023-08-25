@@ -41,5 +41,9 @@ const TestTeacherSchema = new Schema(
   }
 );
 
+
+// Agrega el índice en el campo 'caso'
+TestTeacherSchema.index({ caso: 1 });
+
 const TestTeacher = mongoose.model("TestTeacher", TestTeacherSchema);
 module.exports = TestTeacher;

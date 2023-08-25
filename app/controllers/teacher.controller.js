@@ -119,16 +119,16 @@ exports.getTeachers = async (req, res) => {
         const institution = person?.institution;
         return {
           id: teacher._id,
-          CI: person ? person.CI : "no asignado",
-          name: person ? person.name : "no asignado",
-          lastName: person ? person.lastName : "no asignado",
-          phone: person ? person.phone : "no asignado",
-          email: person ? person.email : "no asignado",
+          CI: person ? person.CI : null,
+          name: person ? person.name : null,
+          lastName: person ? person.lastName : null,
+          phone: person ? person.phone : null,
+          email: person ? person.email : null,
           nameInstitution: institution
             ? person.institution.nameInstitution
-            : "no asignado",
-          role: user ? user.role : "no asignado",
-          status: user ? user.status : "no asignado",
+            : null,
+          role: user ? user.role : null,
+          status: user ? user.status : null,
         };
       })
     );
@@ -142,47 +142,60 @@ exports.getTeachers = async (req, res) => {
     res.status(400).send(error + "Error al obtener los docentes");
   }
 };
+
 exports.getTeachersCasos = async (req, res) => {
   try {
     const { data } = req.body;
-    const teachers = await Teacher.find().populate({
-      path: "user",
-      select: "-_id role status",
-      populate: {
-        path: "person",
-        select: "-_id CI name lastName phone email institution",
-        populate: {
-          path: "institution",
-          select: "-_id nameInstitution",
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
         },
       },
-    });
+      { $unwind: "$user" },
+      {
+        $lookup: {
+          from: "people",
+          localField: "user.person",
+          foreignField: "_id",
+          as: "user.person",
+        },
+      },
+      { $unwind: "$user.person" },
+      {
+        $lookup: {
+          from: "institutions",
+          localField: "user.person.institution",
+          foreignField: "_id",
+          as: "user.person.institution",
+        },
+      },
+      { $unwind: "$user.person.institution" },
+      {
+        $match: {
+          "user.person.institution.nameInstitution": data,
+        },
+      },
+      {
+        $project: {
+          id: { $ifNull: ["$_id", null] },
+          CI: { $ifNull: ["$user.person.CI", null] },
+          name: { $ifNull: ["$user.person.name", null] },
+          lastName: { $ifNull: ["$user.person.lastName", null] },
+          phone: { $ifNull: ["$user.person.phone", null] },
+          email: { $ifNull: ["$user.person.email", null] },
+          nameInstitution: { $ifNull: ["$user.person.institution.nameInstitution", null] },
+          role: { $ifNull: ["$user.role", null] },
+          status: { $ifNull: ["$user.status", null] },
+        },
+      },
+    ];
 
-    const filteredTeachers = teachers.filter((teacher) => {
-      return teacher.user.person.institution.nameInstitution === data;
-    });
-
-
-    const listaTeacher = await Promise.all(
-      filteredTeachers.map(async (teacher) => {
-        const user = teacher.user;
-        const person = user?.person;
-        const institution = person?.institution;
-        return {
-          id: teacher._id,
-          CI: person ? person.CI : "no asignado",
-          name: person ? person.name : "no asignado",
-          lastName: person ? person.lastName : "no asignado",
-          phone: person ? person.phone : "no asignado",
-          email: person ? person.email : "no asignado",
-          nameInstitution: institution
-            ? person.institution.nameInstitution
-            : "no asignado",
-          role: user ? user.role : "no asignado",
-          status: user ? user.status : "no asignado",
-        };
-      })
-    );
+    const listaTeacher = await Teacher.aggregate(pipeline);
 
     res.status(200).send({
       message: "Datos docente obtenidos exitosamente",
@@ -194,8 +207,8 @@ exports.getTeachersCasos = async (req, res) => {
   }
 };
 
+
 exports.getTeacher = async (req, res) => {
-console.log("llegue..")
   try {
     const { id } = req.params;
     const teacher = await Teacher.findById(id)
@@ -219,21 +232,21 @@ console.log("llegue..")
 
     const teacherData = {
       id: teacher._id,
-      CI: teacher.user?.person ? teacher.user.person.CI : "no asignado",
-      name: teacher.user?.person ? teacher.user.person.name : "no asignado",
+      CI: teacher.user?.person ? teacher.user.person.CI : null,
+      name: teacher.user?.person ? teacher.user.person.name : null,
       lastName: teacher.user?.person
         ? teacher.user.person.lastName
-        : "no asignado",
+        : null,
       address: teacher.user?.person
         ? teacher.user.person.address
-        : "no asignado",
-      phone: teacher.user?.person ? teacher.user.person.phone : "no asignado",
-      email: teacher.user?.person ? teacher.user.person.email : "no asignado",
+        : null,
+      phone: teacher.user?.person ? teacher.user.person.phone : null,
+      email: teacher.user?.person ? teacher.user.person.email : null,
       nameInstitution: teacher.user?.person?.institution
         ? teacher.user?.person?.institution?.nameInstitution
-        : "no asignado",
-      role: teacher?.user ? teacher.user.role : "no asignado",
-      status: teacher?.user ? teacher.user.status : "no asignado",
+        : null,
+      role: teacher?.user ? teacher.user.role : null,
+      status: teacher?.user ? teacher.user.status : null,
     };
 
     res

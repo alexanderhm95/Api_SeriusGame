@@ -10,69 +10,132 @@ const PdfPrinter = require("pdfmake");
 const fs = require("fs");
 const path = require("path");
 
-const {
-  obtenerDatosInforme,
-  generarContenidoInforme,
-} = require("../utils/helpers/reportStudent.js");
+const {  obtenerDatosInforme, generarContenidoInforme } = require("../utils/helpers/reportStudent.js");
 
 exports.findAll = async (req, res) => {
   try {
-    console.log(req.params)
-    const {id} = req.params;
+    const { id } = req.params;
 
-  // Realizar múltiples consultas en paralelo para mejorar el rendimiento
+    // Realizar múltiples consultas en paralelo para mejorar el rendimiento
     const [user, dece] = await Promise.all([
       User.findById(id),
       Dece.findOne({ user: id }),
     ]);
 
-  const casos = await Caso.find({ dece })
-      .populate({
-        path: "student",
-        populate: {
-          path: "person",
-          select: "CI name lastName",
+    
+    const result = await Caso.aggregate([
+      {
+        $lookup: {
+          from: "deces",
+          localField: "dece",
+          foreignField: "_id",
+          as: "deceData",
         },
-      })
-      .populate({
-        path: "dece",
-        populate: {
-          path: "user",
-          populate: {
-            path: "person",
-            select: "CI name lastName",
-          },
-        },
-      }).lean();
-
-    const listTests = await Promise.all(
-      casos.map(async (test) => {
-        const student = test?.student?.person;
-        const dece = test?.dece?.user?.person;
-        const testStudent = await TestStudent.findOne({ caso: test._id });
-        if (!testStudent) {
-          return null;
+      },
+      {
+        $unwind: {
+          path: "$deceData",
+          preserveNullAndEmptyArrays: true
         }
-       return {
-            id: testStudent._id ? testStudent._id : null,
-            scoreMax: testStudent.scoreMax ? testStudent.scoreMax : 0,
-            score: testStudent.score ? testStudent.score : 0,
-            statusTestStudent: testStudent.status ? testStudent.status : false,
-            scoreEvaluator:testStudent.scoreEvaluator ? testStudent.scoreEvaluator : 0,
-            ciStudent: student.CI,
-            nameStudent: student.name,
-            lastNameStudent: student.lastName,
-            ciDece: dece.CI,
-            nameDece: dece.name,
-            lastNameDece: dece.lastName,
-            createAt: testStudent.createdAt ? testStudent.createdAt : null,
-          };
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "deceData.user",
+          foreignField: "_id",
+          as: "userData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$userData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "userData.person",
+          foreignField: "_id",
+          as: "personDeceData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$personDeceData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "student",
+          foreignField: "_id",
+          as: "studentData",
+        },
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "studentData.person",
+          foreignField: "_id",
+          as: "personStudentData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$personStudentData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      { $match: { dece: dece._id } },
+      {
+        $project: {
+          "personDeceData": 1,
+          "personStudentData": 1
+        }
+      },
+    ]);
+
+    if (result.length === 0) {
+      return res.status(200).send({ message: "No hay registros", data: [] });
+    }
+
+    const casos = result;
+
+    //Encuentra todos los testTeachers relacionados con los casos
+    const testStudentsCase = await TestStudent.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
+
+    const listTests = testStudentsCase.map(async (test) => {
+
+        const caso = casos ? casos.find((s) => s._id.toString() === test.caso.toString()) : null;
+     
+        if (!test) return null;
+       
+        
+        return {
+          //datos del test
+          id: test._id ? test._id : null,
+          scoreMax: test.scoreMax ? test.scoreMax : 0,
+          score: test.score ? test.score : 0,
+          statusTestStudent: test.status ? test.status : false,
+          scoreEvaluator: test.scoreEvaluator ? test.scoreEvaluator : 0,
+          createAt: test.createdAt ? test.createdAt : null,
+          //datos del estudiante
+          ciStudent: caso?.personStudentData  ? caso.personStudentData.CI : null,
+          nameStudent: caso?.personStudentData  ? caso.personStudentData.name : null,
+          lastNameStudent: caso?.personStudentData  ? caso?.personStudentData.lastName : null,
+          //datos del DECE
+          ciDece: caso?.personDeceData  ? caso?.personDeceData.CI : null,
+          nameDece: caso?.personDeceData ? caso?.personDeceData.name : null,
+          lastNameDece: caso?.personDeceData ? caso?.personDeceData.lastName : null,
+        };
       })
-    );
+    
 
 
-      // Filtrar cualquier objeto nulo que haya quedado en el array
-      const filteredListTests = listTests.filter((test) => test !== null);
+    // Filtrar cualquier objeto nulo que haya quedado en el array
+    const filteredListTests = listTests.filter((test) => test !== null);
 
     res
       .status(200)
@@ -85,8 +148,7 @@ exports.findAll = async (req, res) => {
 
 exports.deleteOne = async (req, res) => {
   try {
-    const testStudent = await TestStudent.findByIdAndDelete(req.params.id);
-
+    await TestStudent.findByIdAndDelete(req.params.id);
     res.status(200).send({ message: "Test Student eliminado correctamente" });
   } catch (error) {
     console.log(error);
@@ -94,14 +156,7 @@ exports.deleteOne = async (req, res) => {
   }
 };
 
-exports.deleteAll = async (req, res) => {
-  try {
-    const testStudent = await TestStudent.deleteMany();
-    res.status(200).send(testStudent);
-  } catch (error) {
-    res.status(400).send({ error: error + "Error al eliminar testStudent" });
-  }
-};
+
 
 exports.getTestStudentReport = async (req, res) => {
   try {
@@ -147,7 +202,7 @@ exports.getTestStudentReport = async (req, res) => {
     });
 
     pdfDoc.end();
-    
+
   } catch (error) {
     console.error("Error al generar el informe", error);
     res.status(500).send({ error: "Error al generar el informe" });
@@ -156,7 +211,7 @@ exports.getTestStudentReport = async (req, res) => {
 
 exports.getTestStudent = async (req, res) => {
   try {
-    const test = await TestStudent.findOne({ caso: req.params.id });
+    const test = await TestStudent.findOne({ caso: req.params.id }).lean();
     res.status(200).send(test);
   } catch (error) {
     res.status(400).send({ error: error + "Error al encontrar testStudent" });

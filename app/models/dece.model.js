@@ -18,5 +18,9 @@ const DeceSchema = new Schema({
     }
 );
 
+
+// Agrega el índice en el campo 'dece'
+DeceSchema.index({ user: 1 });
+
 const Dece = mongoose.model('Dece', DeceSchema);
 module.exports = Dece;

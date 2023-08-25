@@ -48,5 +48,9 @@ const TestStudentSchema = new Schema(
   }
 );
 
+
+// Agrega el índice en el campo 'caso'
+TestStudentSchema.index({ caso: 1 });
+
 const TestStudent = mongoose.model("TestStudent", TestStudentSchema);
 module.exports = TestStudent;

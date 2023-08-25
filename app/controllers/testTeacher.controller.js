@@ -1,78 +1,136 @@
 const TestTeacher = require("../models/testTeacher.model.js");
 const TestQuestion = require("../models/testQuestion.model.js");
-const Person = require("../models/person.model.js");
-const Teacher = require("../models/teacher.model.js");
-const Student = require("../models/student.model.js");
 const Dece = require("../models/dece.model.js");
 const Caso = require("../models/caso.model.js");
 const User = require("../models/user.model.js");
-const Institution = require("../models/institution.model.js");
 
 exports.findAll = async (req, res) => {
   try {
-    console.log(req.params);
     const { id } = req.params;
 
-    // Realizar múltiples consultas en paralelo para mejorar el rendimiento
+    // Encuentra usuario y dece
     const [user, dece] = await Promise.all([
       User.findById(id),
       Dece.findOne({ user: id }),
     ]);
 
-    const casos = await Caso.find({ dece })
-      .populate({
-        path: "student",
-        populate: {
-          path: "person",
-          select: "CI name lastName",
-        },
-      })
-      .populate({
-        path: "teacher",
-        populate: {
-          path: "user",
-          populate: {
-            path: "person",
-            select: "CI name lastName",
-          },
-        },
-      }).lean();
 
-      const listTests = await Promise.all(
-        casos.map(async (test) => {
-          const student = test?.student?.person;
-          const teacher = test?.teacher?.user?.person;
-          const testTeacher = await TestTeacher.findOne({ caso: test._id });
-      
-          // Si testTeacher es null, no lo incluimos en el resultado
-          if (!testTeacher) {
-            return null;
-          }
-      
-          return {
-            id: testTeacher._id ? testTeacher._id : null,
-            scoreMax: testTeacher.scoreMax ? testTeacher.scoreMax : 0,
-            score: testTeacher.score ? testTeacher.score : 0,
-            statusTestTeacher: testTeacher?.status ? testTeacher.status : false,
-            ciStudent: student.CI,
-            nameStudent: student.name,
-            lastNameStudent: student.lastName,
-            ciTeacher: teacher?.CI ? teacher.CI : null,
-            nameTeacher: teacher?.name ? teacher.name : null,
-            lastNameTeacher: teacher?.lastName ? teacher.lastName : null,
-            createAt: testTeacher?.createdAt ? testTeacher.createdAt : null,
-          };
-        })
-      );
-      
-      // Filtrar cualquier objeto nulo que haya quedado en el array
-      const filteredListTests = listTests.filter((test) => test !== null);
-      
-      
 
-    res
-      .status(200)
-      .send({ message: "Datos obtenidos correctamente", data: filteredListTests });
+    const result = await Caso.aggregate([
+      {
+        $lookup: {
+          from: "teachers",
+          localField: "teacher",
+          foreignField: "_id",
+          as: "teacherData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$teacherData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "teacherData.user",
+          foreignField: "_id",
+          as: "userData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$userData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "userData.person",
+          foreignField: "_id",
+          as: "personTeacherData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$personTeacherData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "student",
+          foreignField: "_id",
+          as: "studentData",
+        },
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "studentData.person",
+          foreignField: "_id",
+          as: "personStudentData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$personStudentData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      { $match: { dece: dece._id } },
+      {
+        $project: {
+          "personTeacherData": 1,
+          "personStudentData": 1
+        }
+      },
+    ]);
+
+
+    if (result.length === 0) {
+      return res.status(200).send({ message: "No hay registros", data: [] });
+    }
+
+    const casos = result;
+
+    //Encuentra todos los testTeachers relacionados con los casos
+    const testTeachersCase = await TestTeacher.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
+
+    // Construir la respuesta formateando los datos
+    const listTests = testTeachersCase.map((test) => {
+      
+      const caso = casos ? casos.find((s) => s._id.toString() === test.caso.toString()) : null;
+
+      if (!test) return null;
+
+      return {
+        //datos del test
+        id: test._id ? test._id : null,
+        scoreMax: test.scoreMax ? test.scoreMax : 0,
+        score: test.score ? test.score : 0,
+        statusTestTeacher: test.status ? test.status : false,
+        scoreEvaluator: test.scoreEvaluator ? test.scoreEvaluator : 0,
+        createAt: test.createdAt ? test.createdAt : null,
+        //datos del estudiante
+        ciStudent: caso?.personStudentData ? caso.personStudentData.CI : null,
+        nameStudent: caso?.personStudentData ? caso.personStudentData.name : null,
+        lastNameStudent: caso?.personStudentData ? caso.personStudentData.lastName : null,
+        //datos del Teacher
+        ciTeacher: caso?.personTeacherData ? caso.personTeacherData.CI : null,
+        nameTeacher: caso?.personTeacherData ? caso.personTeacherData.name : null,
+        lastNameTeacher: caso?.personTeacherData ? caso.personTeacherData.lastName : null,
+      };
+    });
+
+    // Filtrar cualquier objeto nulo que haya quedado en el array
+    const filteredListTests = listTests.filter((test) => test !== null);
+
+
+    res.status(200).send({ message: "Datos obtenidos correctamente", data: filteredListTests });
   } catch (error) {
     console.log(error);
     res.status(400).send({ error: error + "Error al encontrar testTeacher" });
@@ -82,7 +140,7 @@ exports.findAll = async (req, res) => {
 exports.getTestTeacher = async (req, res) => {
   try {
     const testUp = await TestTeacher.findOne({ caso: req.params.id });
-    console.log(testUp)
+
     const test = await Promise.all(
       testUp.answers.map(async (answer) => {
         const select = await TestQuestion.findById(answer.refQuestion);
@@ -92,7 +150,6 @@ exports.getTestTeacher = async (req, res) => {
         };
       })
     );
-    console.log(test)
 
     res.status(200).send(test);
   } catch (error) {
@@ -104,8 +161,7 @@ exports.getTestTeacher = async (req, res) => {
 
 exports.deleteOne = async (req, res) => {
   try {
-    const testTeacher = await TestTeacher.findByIdAndDelete(req.params.id);
-
+    await TestTeacher.findByIdAndDelete(req.params.id);
     res.status(200).send({ message: "Test Teacher eliminado correctamente" });
   } catch (error) {
     console.log(error);

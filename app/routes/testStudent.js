@@ -9,6 +9,5 @@ router.get("/:id",       checkAuth(['ADMIN','DECE','STUDENT']),   testStudentCon
 router.get("/reporte/:id",         testStudentController.getTestStudentReport);
 router.put("/score/:id", checkAuth(['DECE',]),   testStudentController.scoreUpdate);
 router.delete("/:id",    checkAuth(['DECE']),   testStudentController.deleteOne);
-router.delete("/",       checkAuth(['DECE']),   testStudentController.deleteAll);
 
 module.exports = router;

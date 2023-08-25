@@ -34,5 +34,10 @@ const StudentSchema = new mongoose.Schema({
     }
 );
 
+
+
+// Agrega el índice en el campo 'dece'
+StudentSchema.index({ person: 1 });
+
 const Student = mongoose.model('Student', StudentSchema);
 module.exports = Student;

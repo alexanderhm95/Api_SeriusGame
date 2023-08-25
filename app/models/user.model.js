@@ -35,5 +35,10 @@ const UserSchema = new Schema(
     versionKey: false,
   }
 );
+
+
+// Agrega el índice en el campo 'dece'
+UserSchema.index({ person: 1 });
+
 const User = mongoose.model("User", UserSchema);
 module.exports = User;
