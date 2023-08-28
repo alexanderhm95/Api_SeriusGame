@@ -378,6 +378,7 @@ exports.testStudent = async (req, res) => {
       score: score,
       diagnostic: diagnostic,
       answers,
+      status: true
     }).save();
 
     const response = {
@@ -494,6 +495,7 @@ exports.testTeacher = async (req, res) => {
       score: score,
       answers,
       diagnostic: diagnostic,
+      status:true
     }).save();
 
     await logsAudit(req, 'CREATE', 'TestTeacher', testTeacher, Object.keys(req.body), "Test Docente aplicado");
