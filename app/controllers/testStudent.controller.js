@@ -251,7 +251,7 @@ exports.scoreUpdate = async (req, res) => {
         .send({ error: "Error al cambiar la puntuación del test" });
     }
 
-    const percent = calculateCsr(score);
+    const percent = calculateCsr(testStudent.score);
     let diagnostic;
 
     if (percent < 84) {
@@ -264,7 +264,7 @@ exports.scoreUpdate = async (req, res) => {
       diagnostic = "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual.";
     }
 
-    testStudent.diagnostic = diagnosticUpdate;
+    testStudent.diagnostic = diagnostic;
     await testStudent.save();
     await logsAudit(req, 'UPDATE', 'TestStudent', testStudent, "", "Punto por observación agregado");
 

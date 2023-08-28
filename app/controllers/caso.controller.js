@@ -627,9 +627,11 @@ exports.findAll = async (req, res) => {
     const casos = result;
 
     //Encuentra todos los testTeachers relacionados con los casos
-    const testTeachersCase = await TestTeacher.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
+    const testTeachersCase = await TestTeacher.find({ caso: { $in: casos.map((test) => test._id) }, isDeleted: false }).lean();
     //Encuentra todos los testStudents relacionados con los casos
-    const testStudentsCase = await TestStudent.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
+    const testStudentsCase = await TestStudent.find({ caso: { $in: casos.map((test) => test._id) }, isDeleted: false }).lean();
+
+    console.log(testStudentsCase)
 
     const listaCasos = casos.map((caso) => {
       const student = caso?.personStudentData;
