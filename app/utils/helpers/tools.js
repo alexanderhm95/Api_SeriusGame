@@ -57,4 +57,24 @@ const generatorPass = () => {
   return password;
 };
 
-module.exports = { shuffle, validateIDCard, generatorPass };
+
+const calculateCsr =  (score) => {
+  let percentage;
+
+  if (score >= 0 && score <= 3) {
+    percentage = (score / 3) * 84;
+  } else if (score === 4) {
+    percentage = 89;
+  } else if (score === 5) {
+    percentage = 96;
+  } else if (score >= 6) {
+    percentage = 100;
+  } else {
+    console.error("Invalid score");
+    return null;
+  }
+
+  return percentage;
+};
+
+module.exports = { shuffle, validateIDCard, generatorPass, calculateCsr };

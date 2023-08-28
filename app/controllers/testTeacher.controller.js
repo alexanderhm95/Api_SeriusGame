@@ -3,6 +3,7 @@ const TestQuestion = require("../models/testQuestion.model.js");
 const Dece = require("../models/dece.model.js");
 const Caso = require("../models/caso.model.js");
 const User = require("../models/user.model.js");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
 
 exports.findAll = async (req, res) => {
   try {
@@ -98,7 +99,7 @@ exports.findAll = async (req, res) => {
     const casos = result;
 
     //Encuentra todos los testTeachers relacionados con los casos
-    const testTeachersCase = await TestTeacher.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
+    const testTeachersCase = await TestTeacher.find({ caso: { $in: casos.map((test) => test._id) }, isDeleted: false }).lean();
 
     // Construir la respuesta formateando los datos
     const listTests = testTeachersCase.map((test) => {
@@ -139,7 +140,7 @@ exports.findAll = async (req, res) => {
 
 exports.getTestTeacher = async (req, res) => {
   try {
-    const testUp = await TestTeacher.findOne({ caso: req.params.id });
+    const testUp = await TestTeacher.findOne({ caso: req.params.id, isDeleted:false });
 
     const test = await Promise.all(
       testUp.answers.map(async (answer) => {
@@ -161,7 +162,13 @@ exports.getTestTeacher = async (req, res) => {
 
 exports.deleteOne = async (req, res) => {
   try {
-    await TestTeacher.findByIdAndDelete(req.params.id);
+    const { remarks } = req.body;
+    // Encuentra el objeto por su ID y actualiza el campo "isDeleted" a true
+    const testTeacher = await TestTeacher.findByIdAndUpdate(req.params.id, { isDeleted: true, status:false }, { new: true });
+    await logsAudit(req, 'DELETE', 'TestTeacher', testTeacher, "", remarks);
+
+
+ 
     res.status(200).send({ message: "Test Teacher eliminado correctamente" });
   } catch (error) {
     console.log(error);

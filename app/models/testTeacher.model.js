@@ -6,8 +6,7 @@ const TestTeacherSchema = new Schema(
     caso: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Caso",
-      required: true,
-            unique: true
+      required: true
     },
     scoreMax: {
       type: Number,
@@ -19,6 +18,10 @@ const TestTeacherSchema = new Schema(
     diagnostic: {
       type: String,
       default: null,
+    },
+    isDeleted:{
+        type: Boolean,
+        default:false
     },
     answers: [
       {
@@ -32,7 +35,7 @@ const TestTeacherSchema = new Schema(
     ],
     status: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   {

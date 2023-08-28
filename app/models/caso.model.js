@@ -25,10 +25,9 @@ const CasoSchema = new Schema(
     dateEnd: {
       type: Date,
     },
-    status: {
+    isDeleted: {
       type: Boolean,
-      default: true,
-      required: true
+      default: false
     }
   },
   {

@@ -1,16 +1,13 @@
 const TestStudent = require("../models/testStudent.model.js");
-const Person = require("../models/person.model.js");
-const Teacher = require("../models/teacher.model.js");
-const Student = require("../models/student.model.js");
 const Dece = require("../models/dece.model.js");
 const Caso = require("../models/caso.model.js");
 const User = require("../models/user.model.js");
-const Institution = require("../models/institution.model.js");
 const PdfPrinter = require("pdfmake");
 const fs = require("fs");
 const path = require("path");
-
-const {  obtenerDatosInforme, generarContenidoInforme } = require("../utils/helpers/reportStudent.js");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
+const { calculateCsr } = require("../utils/helpers/tools.js");
+const { obtenerDatosInforme, generarContenidoInforme } = require("../utils/helpers/reportStudent.js");
 
 exports.findAll = async (req, res) => {
   try {
@@ -22,7 +19,7 @@ exports.findAll = async (req, res) => {
       Dece.findOne({ user: id }),
     ]);
 
-    
+
     const result = await Caso.aggregate([
       {
         $lookup: {
@@ -104,34 +101,34 @@ exports.findAll = async (req, res) => {
     const casos = result;
 
     //Encuentra todos los testTeachers relacionados con los casos
-    const testStudentsCase = await TestStudent.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
+    const testStudentsCase = await TestStudent.find({ caso: { $in: casos.map((test) => test._id) }, isDeleted:false }).lean();
 
-    const listTests = testStudentsCase.map(async (test) => {
+    const listTests = testStudentsCase.map((test) => {
 
-        const caso = casos ? casos.find((s) => s._id.toString() === test.caso.toString()) : null;
-     
-        if (!test) return null;
-       
-        
-        return {
-          //datos del test
-          id: test._id ? test._id : null,
-          scoreMax: test.scoreMax ? test.scoreMax : 0,
-          score: test.score ? test.score : 0,
-          statusTestStudent: test.status ? test.status : false,
-          scoreEvaluator: test.scoreEvaluator ? test.scoreEvaluator : 0,
-          createAt: test.createdAt ? test.createdAt : null,
-          //datos del estudiante
-          ciStudent: caso?.personStudentData  ? caso.personStudentData.CI : null,
-          nameStudent: caso?.personStudentData  ? caso.personStudentData.name : null,
-          lastNameStudent: caso?.personStudentData  ? caso?.personStudentData.lastName : null,
-          //datos del DECE
-          ciDece: caso?.personDeceData  ? caso?.personDeceData.CI : null,
-          nameDece: caso?.personDeceData ? caso?.personDeceData.name : null,
-          lastNameDece: caso?.personDeceData ? caso?.personDeceData.lastName : null,
-        };
-      })
-    
+      const caso = casos ? casos.find((s) => s._id.toString() === test.caso.toString()) : null;
+
+      if (!test) return null;
+
+
+      return {
+        //datos del test
+        id: test._id ? test._id : null,
+        scoreMax: test.scoreMax ? test.scoreMax : 0,
+        score: test.score ? test.score : 0,
+        statusTestStudent: test.status ? test.status : false,
+        scoreEvaluator: test.scoreEvaluator ? test.scoreEvaluator : 0,
+        createAt: test.createdAt ? test.createdAt : null,
+        //datos del estudiante
+        ciStudent: caso?.personStudentData ? caso.personStudentData.CI : null,
+        nameStudent: caso?.personStudentData ? caso.personStudentData.name : null,
+        lastNameStudent: caso?.personStudentData ? caso?.personStudentData.lastName : null,
+        //datos del DECE
+        ciDece: caso?.personDeceData ? caso?.personDeceData.CI : null,
+        nameDece: caso?.personDeceData ? caso?.personDeceData.name : null,
+        lastNameDece: caso?.personDeceData ? caso?.personDeceData.lastName : null,
+      };
+    })
+
 
 
     // Filtrar cualquier objeto nulo que haya quedado en el array
@@ -148,7 +145,11 @@ exports.findAll = async (req, res) => {
 
 exports.deleteOne = async (req, res) => {
   try {
-    await TestStudent.findByIdAndDelete(req.params.id);
+    const { remarks } = req.body;
+    // Encuentra el objeto por su ID y actualiza el campo "isDeleted" a true
+    const testStudent = await TestStudent.findByIdAndUpdate(req.params.id, { isDeleted: true, status:false }, { new: true });
+    await logsAudit(req, 'DELETE', 'TestStudent', testStudent, "", remarks);
+
     res.status(200).send({ message: "Test Student eliminado correctamente" });
   } catch (error) {
     console.log(error);
@@ -211,7 +212,7 @@ exports.getTestStudentReport = async (req, res) => {
 
 exports.getTestStudent = async (req, res) => {
   try {
-    const test = await TestStudent.findOne({ caso: req.params.id }).lean();
+    const test = await TestStudent.findOne({ caso: req.params.id, isDeleted:false }).lean();
     res.status(200).send(test);
   } catch (error) {
     res.status(400).send({ error: error + "Error al encontrar testStudent" });
@@ -250,25 +251,26 @@ exports.scoreUpdate = async (req, res) => {
         .send({ error: "Error al cambiar la puntuación del test" });
     }
 
-    const percent = (testStudent.score / testStudent.scoreMax) * 100;
+    const percent = calculateCsr(score);
+    let diagnostic;
 
-    let diagnosticUpdate;
-    if (percent >= 70) {
-      diagnosticUpdate =
-        "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
-    } else if (percent >= 40) {
-      diagnosticUpdate =
-        "El alumno presenta un riesgo MODERADO de haber sido víctima de violencia sexual";
+    if (percent < 84) {
+      diagnostic = "El alumno no presenta indicadores.";
+    } else if (percent >= 100) {
+      diagnostic = "El alumno presenta una probabilidad ALTA de haber sido víctima de violencia sexual.";
+    } else if (percent >= 96 && percent < 100) {
+      diagnostic = "El alumno presenta una probabilidad MODERADA de haber sido víctima de violencia sexual.";
     } else {
-      diagnosticUpdate =
-        "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual";
+      diagnostic = "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual.";
     }
 
     testStudent.diagnostic = diagnosticUpdate;
     await testStudent.save();
+    await logsAudit(req, 'UPDATE', 'TestStudent', testStudent, "", "Punto por observación agregado");
 
-    res.status(200).send({ message: "Test Teacher actualizado correctamente" });
+    res.status(200).send({ message: "Puntuación  actualizada correctamente" });
   } catch (error) {
-    res.status(400).send({ error: "Error updating testTeacher: " + error });
+    console.log(error)
+    res.status(400).send({ error: "Error al actualizar puntuación "  });
   }
 };

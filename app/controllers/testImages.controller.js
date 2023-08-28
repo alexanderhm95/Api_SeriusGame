@@ -1,11 +1,14 @@
 const TestImages = require("../models/testImages.model");
-const { resolve } = require("path");
 const fs = require("fs");
+const { resolve } = require("path");
 const { shuffle } = require("../utils/helpers/tools.js")
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
+
+
 
 // Registro de preguntas para el test Imágenes
 exports.create = async (req, res) => {
-  let srcImageTmp = ""; 
+  let srcImageTmp = "";
   try {
     const { data } = req.body;
     const testImages = JSON.parse(data);
@@ -18,18 +21,18 @@ exports.create = async (req, res) => {
 
     //Comprueba el numero de preguntas con esa sección
     const imageCountSection = await TestImages.countDocuments({ section: test.section });
-    
-    if(imageCountSection >= 3){
+
+    if (imageCountSection >= 3) {
       console.log("Solo se permiten 3 imágenes")
       return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
     }
     srcImageTmp = test.link;
     await test.save();
+    await logsAudit(req, 'CREATE', 'TestImages', test, Object.keys(req.body), "Crea pregunta");
     res.status(201).send({ message: "ok", test });
   } catch (error) {
     // si ocurre un error, se elimina la imagen subida
     const deleteFile = resolve(__dirname, "..", `../${srcImageTmp}`);
-
     fs.unlink(deleteFile, (err) => {
       if (err) {
         console.log("Error al eliminar archivo:", err);
@@ -46,7 +49,7 @@ exports.create = async (req, res) => {
 
 exports.findAllPaginated = async (req, res) => {
   try {
-    const testImages = await TestImages.find().sort({ section: 1 });
+    const testImages = await TestImages.find({ isDeleted: false }).sort({ section: 1 });
     res.status(200).json({ message: "Preguntas del test docente recuperadas", data: testImages });
   } catch (error) {
     console.error("Error al cargar el test estudiante:", error);
@@ -58,10 +61,10 @@ exports.findAllPaginated = async (req, res) => {
 exports.findAll = async (req, res) => {
   try {
     const testImages = await TestImages.find();
-    const data = await shuffle(testImages) 
-     res.status(200).send({ message: "ok", data});
+    const data = await shuffle(testImages)
+    res.status(200).send({ message: "ok", data });
   } catch (error) {
-    console.log("Error al cargar el test estudiante",error)
+    console.log("Error al cargar el test estudiante", error)
     res.status(400).send({ error: "Error al cargar el test estudiante" });
   }
 };
@@ -80,10 +83,10 @@ exports.findOne = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-    let srcImageTmp  = ''; 
-    let srcImageTmp2 = ''; 
+  let srcImageTmp = '';
+  let srcImageTmp2 = '';
   try {
-    const {id} = req.params;
+    const { id } = req.params;
     const { data } = req.body;
     const testImagesOld = await TestImages.findById(id);
 
@@ -94,19 +97,20 @@ exports.update = async (req, res) => {
       value: testImages.value,
       section: testImages.section,
     };
-  const countSection = await TestImages.find({ _id: { $ne: id },section:test.section}).lean()
-  console.log(countSection.length)
-    
-    if((countSection.length) >= 3){
-    return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
-}
+    const countSection = await TestImages.find({ _id: { $ne: id }, section: test.section }).lean()
+    console.log(countSection.length)
+
+    if ((countSection.length) >= 3) {
+      return res.status(400).send({ error: "Solo se permiten 3 imágenes por sección" });
+    }
     const updatedTestImages = await TestImages.findByIdAndUpdate(
       req.params.id,
       test,
       { new: true }
     );
+    await logsAudit(req, 'UPDATE', 'TestImages', updatedTestImages, Object.keys(req.body), "actualización de datos");
 
-    srcImageTmp  = updatedTestImages.link;
+    srcImageTmp = updatedTestImages.link;
     srcImageTmp2 = testImagesOld.link;
 
 
@@ -143,26 +147,20 @@ exports.update = async (req, res) => {
 // Delete a testImages with the specified testImagesId in the request
 exports.delete = async (req, res) => {
   try {
-    const testImages = await TestImages.findByIdAndRemove(req.params.id);
+    const { remarks } = req.body;
+    // Encuentra el objeto por su ID y actualiza el campo "isDeleted" a true
+    const testImages = await TestImages.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+    await logsAudit(req, 'DELETE', 'TestImages', testImages, "", remarks);
 
-    //se comprueba si la imagen existe para eliminarla
-    const deleteFile = resolve(__dirname, "..", "..", testImages.link);
+    // Verifica si el objeto se encontró y se actualizó correctamente
+    if (!testImages) {
+      return res.status(400).send({ error: 'Pregunta del test Estudiante no encontrada' });
+    }
 
-    fs.access(deleteFile, fs.constants.F_OK, (err) => {
-      if (!err) {
-        fs.unlink(deleteFile, (err) => {
-          console.log("Archivo eliminado");
-        });
-      } else {
-        console.log("Error al eliminar archivo");
-      }
-    });
-
-    res
-      .status(200)
-      .send({ message: "Pregunta del Test Estudiante!", testImages });
+    res.status(202).send({ message: "Pregunta del Test Estudiante marcada como eliminada" });
   } catch (error) {
-    res.status(400).send({ error: error + "Error al eliminar Test Student" });
+    console.log(error)
+    res.status(400).send({ error: `Error al marcar como eliminada la pregunta del Test Estudiante` });
   }
 };
 

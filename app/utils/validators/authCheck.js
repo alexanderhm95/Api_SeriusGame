@@ -18,6 +18,8 @@ const checkAuth = (roles) => async (req, res, next) => {
 
     const existsUser = await User.findById(decodedToken.payload.user);
     const existsStudent = await Student.findById(decodedToken.payload.user);
+
+    req.currentUser = existsUser ? existsUser : existsStudent;
    
 
     if (tokenData && roles.includes(decodedToken.payload.role) && (existsUser || existsStudent )) {

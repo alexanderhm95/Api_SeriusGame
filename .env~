@@ -1,0 +1,12 @@
+DATABASE=mongodb+srv://sg2022:bdsg2022@cluster0.mntr18s.mongodb.net/bdSeriusGame?retryWrites=true&w=majority
+DATABASE_LOCAL=mongodb://localhost:27017/bdSeriusGame2
+REPLICA=bdSeriusGameMirrow
+JWT_SECRET=SeirusGame2022
+MAIL_HOST=smtp.gmail.com
+MAIL_PASS=oasotsxbdauyocej
+MAIL_PORT=465
+MAIL_USER=byron.herrera@unl.edu.ec
+SLACK_WEBHOOK=https://hooks.slack.com/services/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
+REDIS_CLOUD=redis-14740.c257.us-east-1-3.ec2.cloud.redislabs.com
+REDIS_PORT=14740
+REDIS_PASS=6OgL9zVZWP0mPGJOx5EhOUL14IkBqMqv

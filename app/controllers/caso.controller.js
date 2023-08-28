@@ -9,10 +9,9 @@ const Person = require("../models/person.model.js");
 const TestStudent = require("../models/testStudent.model.js");
 const TestTeacher = require("../models/testTeacher.model.js");
 const TestQuestion = require("../models/testQuestion.model.js");
-const TestImages = require("../models/testImages.model.js");
 const Institution = require("../models/institution.model.js");
-const { encrypt } = require("../utils/helpers/handle.password");
-const { validateIDCard } = require("../utils/helpers/tools.js");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
+const { validateIDCard, calculateCsr } = require("../utils/helpers/tools.js");
 
 // Create and Save a new caso    Listo el create
 exports.create = async (req, res) => {
@@ -152,6 +151,8 @@ exports.create = async (req, res) => {
       dateStart: Date.now(),
     }).save({ session });
 
+    await logsAudit(req, 'CREATE', 'Caso', caso, Object.keys(req.body), "Caso creado");
+
     await session.commitTransaction();
     session.endSession();
 
@@ -285,11 +286,14 @@ exports.update = async (req, res) => {
     }
 
     // Actualizar el profesor del caso
-    await Caso.findByIdAndUpdate(
+    const caso = await Caso.findByIdAndUpdate(
       id,
       { teacher: newTeacher[0]._id },
       { new: true, session }
     );
+
+
+    await logsAudit(req, 'CREATE', 'Caso', caso, Object.keys(req.body), "Caso actualizado");
 
     await session.commitTransaction();
     session.endSession();
@@ -335,39 +339,40 @@ exports.testStudent = async (req, res) => {
 
     // Verificar si el usuario existe
     if (caso.length == 0) {
-      console.log("Usuario no encontrado o borrado previamente")
+      console.log("Caso no encontrado o borrado previamente")
       return res
         .status(400)
-        .send({ error: "Usuario no encontrado o borrado previamente" });
+        .send({ error: "Caso no encontrado o borrado previamente" });
     }
 
-    const testOld = await TestStudent.findOne({ caso: caso._id }).lean();
+    const testOld = await TestStudent.findOne({ caso: caso._id, idDeleted: false }).lean();
+
     if (testOld) {
       return res.status(400).send({ error: "El test ya ha sido ejecutado" });
     }
 
-    const questions = await TestImages.find({ section: { $ne: 0 } }, { value: 1 });
     const scoreMax = answers.length + 1;
+
     const score = answers.reduce(
       (total, answer) => total + answer.valueAnswer,
       0
     );
 
-    const percent = (score / scoreMax) * 100;
-
+    const percent = calculateCsr(score);
     let diagnostic;
-    if (percent >= 70) {
-      diagnostic =
-        "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
-    } else if (percent >= 40) {
-      diagnostic =
-        "El alumno presenta un riesgo MODERADO de haber sido victima de violencia sexual";
+
+    if (percent < 84) {
+      diagnostic = "El alumno no presenta indicadores.";
+    } else if (percent >= 100) {
+      diagnostic = "El alumno presenta una probabilidad ALTA de haber sido víctima de violencia sexual.";
+    } else if (percent >= 96 && percent < 100) {
+      diagnostic = "El alumno presenta una probabilidad MODERADA de haber sido víctima de violencia sexual.";
     } else {
-      diagnostic =
-        "El alumno presenta un riesgo LEVE de haber sido victima de violencia sexual";
+      diagnostic = "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual.";
     }
 
-    await new TestStudent({
+
+    const testStudent = await new TestStudent({
       caso: caso[0]._id,
       scoreMax,
       score: score,
@@ -379,6 +384,7 @@ exports.testStudent = async (req, res) => {
       score,
       diagnostic,
     };
+    await logsAudit(req, 'CREATE', 'TestStudent', testStudent, Object.keys(req.body), "Test Estudiante aplicado");
 
     res.status(201).send({ message: "ok", data: response });
   } catch (error) {
@@ -448,7 +454,15 @@ exports.testTeacher = async (req, res) => {
     if (caso.length == 0) {
       return res
         .status(400)
-        .send({ error: "Usuario no encontrado o borrado previamente" });
+        .send({ error: "Caso no encontrado o borrado previamente" });
+    }
+
+
+
+    const testOld = await TestQuestion.findOne({ caso: caso._id, idDeleted: false }).lean();
+
+    if (testOld) {
+      return res.status(400).send({ error: "El test ya ha sido ejecutado" });
     }
 
     const questions = await TestQuestion.find();
@@ -464,23 +478,25 @@ exports.testTeacher = async (req, res) => {
     const percent = (score / scoreMax) * 100;
 
     let diagnostic;
-    if (percent >= 70) {
+    if (percent >= 65.08) {
       diagnostic =
         "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
-    } else if (percent >= 40) {
+    } else if (percent >= 31.75) {
       diagnostic =
         "El alumno presenta un riesgo MODERADO de haber sido victima de violencia sexual";
     } else {
       diagnostic =
         "El alumno presenta un riesgo LEVE de haber sido victima de violencia sexual";
     }
-    await new TestTeacher({
+    const testTeacher = await new TestTeacher({
       caso: caso[0]._id,
       scoreMax,
       score: score,
       answers,
       diagnostic: diagnostic,
     }).save();
+
+    await logsAudit(req, 'CREATE', 'TestTeacher', testTeacher, Object.keys(req.body), "Test Docente aplicado");
 
     res.status(201).send({ message: "Test Docente creado con éxito!" });
   } catch (error) {
@@ -489,108 +505,6 @@ exports.testTeacher = async (req, res) => {
   }
 };
 
-//Se lista todos los casos para el DECE
-exports.findAll = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const dece = await Dece.findOne({ user: id }).lean();
-
-
-    const casos = await Caso.find({ dece: dece._id })
-      .populate({
-        path: "student",
-        select: "id grade parallel",
-        populate: {
-
-          path: "person",
-          select: "CI name lastName",
-          populate: {
-
-            path: "institution",
-            select: "nameInstitution",
-
-          }
-        }
-      })
-      .populate({
-        path: "dece",
-        populate: {
-          path: "user",
-          populate: {
-            path: "person",
-            select: "CI name lastName email",
-          }
-        }
-      })
-      .populate({
-        path: "teacher",
-        populate: {
-          path: "user",
-          populate: {
-            path: "person",
-            select: "CI name lastName email",
-            populate: {
-              path: "institution",
-              select: "nameInstitution"
-            }
-          }
-        }
-      })
-
-    // Mapear y ajustar los campos con valores por defecto en caso de null
-    const listaCasos = await Promise.all(casos.map(async (caso) => {
-      const student = caso?.student;
-      const personStudent = student?.person;
-      const institutionStudent = personStudent?.institution;
-
-      const dece = caso?.dece;
-      const userDece = dece?.user;
-      const personDece = userDece?.person;
-
-      const teacher = caso?.teacher;
-      const userTeacher = teacher?.user;
-      const personTeacher = userTeacher?.person;
-      const institutionTeacher = personTeacher?.institution;
-
-      const testTeacher = await TestTeacher.findOne({ caso })
-      const testStudent = await TestStudent.findOne({ caso })
-
-      return {
-        _id: caso._id,
-        dateStart: caso?.dateStart || null,
-        idStudent: student._id || null,
-        ciStudent: personStudent.CI || null,
-        nameStudent: personStudent.name || null,
-        lastNameStudent: personStudent.lastName || null,
-        gradeStudent: student.grade || null,
-        parallelStudent: student.parallel || null,
-        nameInstitutionStudent: institutionStudent.nameInstitution || null,
-        ciDece: personDece?.CI || null,
-        nameDece: personDece?.name || null,
-        lastNameDece: personDece?.lastName || null,
-        emailDece: personDece?.email || null,
-        ciTeacher: personTeacher?.CI || null,
-        nameTeacher: personTeacher?.name || null,
-        lastNameTeacher: personTeacher?.lastName || null,
-        emailTeacher: personTeacher?.email || null,
-        nameInstitutionTeacher: institutionTeacher?.nameInstitution || null,
-        statusTestStudent: testStudent?.status || false,
-        statusTestTeacher: testTeacher?.status || false,
-      };
-    }));
-
-
-
-    res
-      .status(200)
-      .send({ message: "Datos extraídos correctamente ", data: listaCasos });
-
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Error al buscar los casos" });
-  }
-};
 
 exports.findAll = async (req, res) => {
   try {
@@ -691,15 +605,15 @@ exports.findAll = async (req, res) => {
           preserveNullAndEmptyArrays: true
         }
       },
-      { $match: { dece: dece._id } },
+      { $match: { dece: dece._id, isDeleted: false } },
       {
         $project: {
-          dateStart:1,
+          dateStart: 1,
           "studentData": 1,
           "personTeacherData": 1,
           "personStudentData": 1,
           "institutionStudentData": 1,
-          "institutionTeacherData" : 1
+          "institutionTeacherData": 1
         }
       },
     ]);
@@ -715,14 +629,14 @@ exports.findAll = async (req, res) => {
     //Encuentra todos los testStudents relacionados con los casos
     const testStudentsCase = await TestStudent.find({ caso: { $in: casos.map((test) => test._id) } }).lean();
 
-      const listaCasos = casos.map( (caso) => {
+    const listaCasos = casos.map((caso) => {
       const student = caso?.personStudentData;
       const teacher = caso?.personTeacherData;
 
 
       const testStudent = testStudentsCase ? testStudentsCase.find((s) => s.caso.toString() === caso._id.toString()) : null;
       const testTeacher = testTeachersCase ? testTeachersCase.find((s) => s.caso.toString() === caso._id.toString()) : null;
-     
+
 
       return {
         //Datos del caso
@@ -788,7 +702,7 @@ exports.getAllStudentsXTeacher = async (req, res) => {
       return res.status(404).send({ message: "Docente no encontrado" });
     }
 
-    const casoIds = await Caso.find({ teacher: teacher._id })
+    const casoIds = await Caso.find({ teacher: teacher._id, isDeleted: false })
       .select("_id")
       .lean()
       .exec();
@@ -1031,23 +945,20 @@ exports.getCaso = async (req, res) => {
 };
 
 
-
 exports.delete = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { id } = req.params;
-    console.log(id)
+    const { remarks } = req.body;
+
     const caso = await Caso.findById(id).session(session);
-    console.log(caso)
 
     const student = await Student.findById(caso.student).session(session);
 
     //Comprueba si el estudiante tiene test ejecutados
-    const testTeacherPromise = await TestTeacher.findOne({ caso: caso._id }).session(session);
-    const testStudentPromise = await TestStudent.findOne({ caso: caso._id }).session(session);
-    console.log("Test docente:", testTeacherPromise)
-    console.log("Test estudiante:", testStudentPromise)
+    const testTeacherPromise = await TestTeacher.findOne({ caso: caso._id, isDeleted:false }).session(session);
+    const testStudentPromise = await TestStudent.findOne({ caso: caso._id, isDeleted:false }).session(session);
 
     if (testTeacherPromise || testStudentPromise) {
       await session.abortTransaction();
@@ -1062,9 +973,10 @@ exports.delete = async (req, res) => {
       console.log("Se eliminaron el estudiante y persona vinculada")
     }
 
-    //Elimina el caso   
-    await caso.remove();
-    //Cierra sesion
+    //Elimina el caso  logico
+    const casoDeleted = await Caso.findByIdAndUpdate(id, { isDeleted: true }).session(session);
+    await logsAudit(req, 'DELETE', 'Caso', casoDeleted, "", remarks);
+
     await session.commitTransaction();
     session.endSession();
 
