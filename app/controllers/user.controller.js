@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { validateIDCard, generatorPass } = require("../utils/helpers/tools.js");
 const { sendRecoveryCodeEmail } = require("../../config/mail.conf");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
 
 const User = require("../models/user.model");
 const Person = require("../models/person.model");

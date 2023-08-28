@@ -4,6 +4,7 @@ const User = require("../models/user.model");
 const Teacher = require("../models/teacher.model");
 const Dece = require("../models/dece.model");
 const Institution = require("../models/institution.model");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
 
 //método para crear una persona en la base de datos
 exports.createPerson = async (req, res) => {

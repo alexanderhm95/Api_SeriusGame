@@ -1,5 +1,6 @@
 const Institution = require("../models/institution.model.js");
 const Caso = require("../models/caso.model.js");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
 
 // Create and Save a new institution
 exports.createInstitution = async (req, res) => {
