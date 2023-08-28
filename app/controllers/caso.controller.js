@@ -779,7 +779,7 @@ exports.getReporte = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const caso = await Caso.findById(id)
+    const caso = await Caso.findOne({_id:id, isDeleted: false})
       .populate({
         path: "student",
         select: "grade parallel",
@@ -817,14 +817,14 @@ exports.getReporte = async (req, res) => {
         },
       })
       .lean();
-
+      console.log(caso)
     if (!caso) {
       return res.status(404).send({ error: "Caso no encontrado" });
     }
 
     const [testStudent, testTeacher] = await Promise.all([
-      TestStudent.findOne({ caso: caso._id }),
-      TestTeacher.findOne({ caso: caso._id }),
+      TestStudent.findOne({ caso: caso._id, isDeleted:false }),
+      TestTeacher.findOne({ caso: caso._id, isDeleted:false }),
     ]);
 
     const casoData = {
@@ -870,7 +870,7 @@ exports.getCaso = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const caso = await Caso.findById(id)
+    const caso = await Caso.findOne({_id:id, idDeleted: false})
       .populate({
         path: "student",
         select: "_id grade parallel",
