@@ -5,6 +5,7 @@ const Teacher = require("../models/teacher.model.js");
 const Person = require("../models/person.model.js");
 const User = require("../models/user.model.js");
 const Caso = require("../models/caso.model.js");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
 const { encrypt } = require("../utils/helpers/handle.password");
 const { sendRecoveryCodeEmail } = require("../../config/mail.conf");
 const { validateIDCard, generatorPass } = require("../utils/helpers/tools.js");
@@ -75,7 +76,9 @@ exports.createTeacher = async (req, res) => {
 
     const newPerson = await Person.create({ CI, name, lastName, address, phone, email, institution: existingInstitution._id })
     const user = await User.create({ password: hashedPassword, person: newPerson._id, role: "TEACHER" })
-    await Teacher.create({ user: user._id })
+    const teacher = await Teacher.create({ user: user._id })
+
+    await logsAudit(req, 'CREATE', 'TEACHER', teacher, Object.keys(req.body), "Registro TEACHER");
 
    //Enviamos el correo  con los datos 
     const result = await sendRecoveryCodeEmail(email, pass , subject, operation)
@@ -375,6 +378,9 @@ exports.updateTeacher = async (req, res) => {
       { new: true, session }
     );
 
+
+    await logsAudit(req, 'UPDATE', 'TEACHER', updatedTeacher, Object.keys(req.body), "Actualizar Docente");
+
     await session.commitTransaction();
     session.endSession();
 
@@ -421,15 +427,18 @@ exports.deleteTeacher = async (req, res) => {
     );
 
     if (teacher.user.person === null && casoCount === 0) {
-      await User.findByIdAndRemove(teacher.user._id).session(session);
-      await Teacher.findByIdAndRemove(teacherId).session(session);
+      const userDeleted = await User.findByIdAndRemove(teacher.user._id).session(session);
+      await logsAudit(req, 'DELETED', 'USER', userDeleted, "", "Eliminado físico de usuario por Docente");
+      const teacherDeleted = await Teacher.findByIdAndRemove(teacherId).session(session);
+      await logsAudit(req, 'DELETED', 'DECE', teacherDeleted, "", "Eliminado físico Docente");
       await session.commitTransaction();
       session.endSession();
       return res.status(200).send({ message: "Docente eliminado correctamente" });
     }
 
     if (teacher.user === null && casoCount === 0) {
-      await Teacher.findByIdAndRemove(teacherId).session(session);
+      const teacherDeleted = await Teacher.findByIdAndRemove(teacherId).session(session);
+      await logsAudit(req, 'DELETED', 'DECE', teacherDeleted, "", "Eliminado físico Docente");
       await session.commitTransaction();
       session.endSession();
       return res.status(200).send({ message: "Docente eliminado correctamente" });
@@ -443,9 +452,12 @@ exports.deleteTeacher = async (req, res) => {
         .send({ error: `El docente tiene ${casoCount} casos asociados` });
     }
 
-    await Person.findOneAndRemove({ CI: teacher.user.person.CI }).session(session);
-    await User.findByIdAndRemove(teacher.user._id).session(session);
-    await Teacher.findByIdAndRemove(teacherId).session(session);
+    const personDeleted = await Person.findOneAndRemove({  CI: teacher.user.person.CI  }).session(session);
+    await logsAudit(req, 'DELETED', 'PERSON', personDeleted, "", "Eliminado físico de persona por Docente");
+    const userDeleted = await User.findByIdAndRemove(teacher.user._id).session(session);
+    await logsAudit(req, 'DELETED', 'USER', userDeleted, "", "Eliminado físico de usuario por Docente");
+    const teacherDeleted = await Teacher.findByIdAndRemove(teacherId).session(session);
+    await logsAudit(req, 'DELETED', 'DECE', teacherDeleted, "", "Eliminado físico Docente");
 
     await session.commitTransaction();
     session.endSession();

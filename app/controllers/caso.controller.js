@@ -293,7 +293,7 @@ exports.update = async (req, res) => {
     );
 
 
-    await logsAudit(req, 'CREATE', 'Caso', caso, Object.keys(req.body), "Caso actualizado");
+    await logsAudit(req, 'UPDATE', 'Caso', caso, Object.keys(req.body), "Caso actualizado");
 
     await session.commitTransaction();
     session.endSession();

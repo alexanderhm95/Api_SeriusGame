@@ -4,6 +4,7 @@ const Student = require("../models/student.model.js");
 const Person = require("../models/person.model.js");
 const Institution = require("../models/institution.model.js");
 const Caso = require("../models/caso.model.js");
+const { logsAudit } = require('../utils/helpers/auditEvent.js');
 const { generateToken } = require("../utils/helpers/handle.jwt");
 const { validateIDCard } = require("../utils/helpers/tools.js");
 
@@ -41,7 +42,7 @@ exports.createStudent = async (req, res) => {
 
     //Verifica  si existen el CI o correo en otras cuentas
     const isCINotDuplicated = await Person.findOne({ CI }).exec().session(session);
-  
+
     //si el email ya esta registrado retornamos un error
     if (isCINotDuplicated) {
       console.log("La cédula pertenece a un usuario registrado")
@@ -52,7 +53,7 @@ exports.createStudent = async (req, res) => {
         .send({ error: "La cédula pertenece a un usuario registrado" });
     }
 
-    
+
 
     const institution = await Institution.findOne({ nameInstitution }).session(
       session
@@ -74,12 +75,14 @@ exports.createStudent = async (req, res) => {
       gender,
     }).save({ session });
 
-    await new Student({
+    const student = await new Student({
       person: newPerson._id,
       institution: institution._id,
       grade,
       parallel,
     }).save({ session });
+    await logsAudit(req, 'CREATE', 'STUDENT', student, Object.keys(req.body), "Registro Student");
+
 
     await session.commitTransaction();
     session.endSession();
@@ -207,11 +210,11 @@ exports.updateStudent = async (req, res) => {
     const student = await Student.findById(id).session(session);
     //Busca la existencia de la persona
     const person = await Person.findById(student.person)
-    .populate({
-      path:"institution",
-      select:"nameInstitution"
-    })
-    .session(session);
+      .populate({
+        path: "institution",
+        select: "nameInstitution"
+      })
+      .session(session);
 
     if (!student || !person) {
       await session.abortTransaction();
@@ -225,7 +228,7 @@ exports.updateStudent = async (req, res) => {
 
     if (!validateCard) {
       await session.abortTransaction();
-      session.endSession();  
+      session.endSession();
       console.log("La cédula que ingresaste es inválida");
       return res
         .status(400)
@@ -234,18 +237,18 @@ exports.updateStudent = async (req, res) => {
 
     //Verifica  si existen el CI o correo en otras cuentas
     const isCINotDuplicated = await Person.findOne({ _id: { $ne: person._id }, CI: CI }).exec();
- 
+
     //Emite un error en el caso de que la cédula pertenezca a otro usuario
-    if (isCINotDuplicated){
+    if (isCINotDuplicated) {
       await session.abortTransaction();
       session.endSession();
       console.log("La cédula pertenece a otro usuario")
       return res
         .status(400)
-        .send({ error: "La cédula pertenece a otro usuario"});
+        .send({ error: "La cédula pertenece a otro usuario" });
     }
 
-   
+
 
     const institution = await Institution.findOne({ nameInstitution }).session(
       session
@@ -257,7 +260,7 @@ exports.updateStudent = async (req, res) => {
         .send({ error: "La institución no está registrada" });
     }
 
-     await Person.findByIdAndUpdate(person._id, {
+    await Person.findByIdAndUpdate(person._id, {
       CI,
       name,
       lastName,
@@ -273,7 +276,8 @@ exports.updateStudent = async (req, res) => {
       grade,
     }).session(session);
 
-    console.log(studentUpdate)
+    
+    await logsAudit(req, 'UPDATE', 'STUDENT', studentUpdate, Object.keys(req.body), "Actualizar Student");
 
     await session.commitTransaction();
     session.endSession();
@@ -335,6 +339,8 @@ exports.deleteStudent = async (req, res) => {
     await Person.findOneAndRemove({ CI: student.person.CI }).session(session);
     await Student.findByIdAndRemove(studentId).session(session);
 
+    await logsAudit(req, 'DELETE', 'STUDENT', student, Object.keys(req.body), "Eliminado Físico del estudiante");
+
     await session.commitTransaction();
     session.endSession();
     res.status(200).send({ message: "Estudiante eliminado correctamente" });
@@ -391,7 +397,9 @@ exports.generatePassStudent = async (req, res) => {
       Student.findByIdAndUpdate(student._id, student).exec();
     }, 300000);
 
-    await Student.findByIdAndUpdate(student._id, student).exec();
+    const studentUpdate = await Student.findByIdAndUpdate(student._id, student).exec();
+
+    await logsAudit(req, 'UPDATE', 'STUDENT', studentUpdate, Object.keys(req.body), "Generación de código");
 
     res.status(200).send({ message: "ok", data: student.passwordTemporaly });
   } catch (error) {
@@ -425,16 +433,16 @@ exports.loginStudent = async (req, res) => {
     if (student.passwordTemporalyExpiration < Date.now()) {
       return res.status(400).send({ message: "Código expirado" });
     }
-    console.log(`Ingreso estudiante ${student?.person?.name} cédula: ${student?.person?.CI} ` );
+    console.log(`Ingreso estudiante ${student?.person?.name} cédula: ${student?.person?.CI} `);
     let cedula = student.person.CI;
-    const response ={
+    const response = {
       id: student._id,
       name: `${student.person.name} ${student.person.lastName}`,
       institution: student.person.institution.nameInstitution,
       role: 'STUDENT',
     };
     const token = generateToken(response)
-    const data ={
+    const data = {
       cedula,
       token
     }

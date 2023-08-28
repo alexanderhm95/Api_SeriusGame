@@ -66,11 +66,13 @@ exports.createUser = async (req, res) => {
     const hashedPassword = await encrypt(password);
 
     //creamos el usuario
-    await new User({
+    const user=await new User({
       person: newPerson._id,
       password: hashedPassword,
       role: "ADMIN",
     }).save({ session });
+
+    await logsAudit(req, 'CREATE', 'USER', user, Object.keys(req.body), "Registro User");
 
     await session.commitTransaction();
     session.endSession();
@@ -212,7 +214,7 @@ exports.updateUser = async (req, res) => {
     }
 
     
-    await Person.findByIdAndUpdate(
+    const personUpdate = await Person.findByIdAndUpdate(
       person._id,
       {
         CI: ciUser,
@@ -225,6 +227,7 @@ exports.updateUser = async (req, res) => {
       { new: true }
     );
 
+    await logsAudit(req, 'CREATE', 'PERSON', personUpdate, Object.keys(req.body), "Actualizar persona desde USER");
     
     await session.commitTransaction();
     session.endSession();
@@ -249,6 +252,7 @@ exports.updateUserStatus = async (req, res) => {
       { new: true }
     );
 
+    await logsAudit(req, 'CREATE', 'USER', user, Object.keys(req.body), "Actualizar USER");
     //Si el usuario no existe retornamos un error
     if (!user) {
       return res.status(400).send({ error: "El usuario no se encuentra registrado" });
@@ -305,6 +309,7 @@ exports.changePasswordUser = async (req, res) => {
     //Guardamos los cambios del usuario
     await user.save();
 
+    await logsAudit(req, 'UPDATE', 'USER', user, Object.keys(req.body), "Actualizar  USER");
     //Enviamos el correo  con los datos 
     const result = await sendRecoveryCodeEmail(user.person.email, pass, subject, operation);
     if (result) {
@@ -407,8 +412,9 @@ exports.deleteUser = async (req, res) => {
     }
    
     await Person.findByIdAndDelete(user.person._id).session(session);
-    await User.findByIdAndDelete(id).session(session);
+    const userDeleted=await User.findByIdAndDelete(id).session(session);
 
+    await logsAudit(req, 'DELETED', 'USER', userDeleted, "", "Eliminado Físico usuario");
     await session.commitTransaction();
     session.endSession();
 
