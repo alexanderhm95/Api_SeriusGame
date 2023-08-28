@@ -641,7 +641,7 @@ exports.findAll = async (req, res) => {
 
 
       return {
-        //Datos del caso
+        //Datos del caso listo
         _id: caso._id,
         dateStart: caso?.dateStart || null,
 
