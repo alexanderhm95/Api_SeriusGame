@@ -940,7 +940,7 @@ exports.getCaso = async (req, res) => {
       emailDece: caso.dece?.user?.person?.email || null,
 
     };
-
+    console.log(casoData)
     res.send({ message: "Caso encontrado", data: casoData });
   } catch (error) {
     console.log(error);
