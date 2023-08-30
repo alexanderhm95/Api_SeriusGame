@@ -870,7 +870,7 @@ exports.getCaso = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const caso = await Caso.findOne({_id:id, idDeleted: false})
+    const caso = await Caso.findOne({_id:id})
       .populate({
         path: "student",
         select: "_id grade parallel",
