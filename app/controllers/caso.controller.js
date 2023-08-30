@@ -876,7 +876,7 @@ exports.getCaso = async (req, res) => {
         select: "_id grade parallel",
         populate: {
           path: "person",
-          select: "name lastName CI  gender age",
+          select: "name lastName CI address phone gender age",
           populate: {
             path: "institution",
             select: "nameInstitution",

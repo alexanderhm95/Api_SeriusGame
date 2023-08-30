@@ -97,7 +97,7 @@ exports.update = async (req, res) => {
       value: testImages.value,
       section: testImages.section,
     };
-    const countSection = await TestImages.find({ _id: { $ne: id }, section: test.section }).lean()
+    const countSection = await TestImages.find({ _id: { $ne: id }, section: test.section , isDeleted:false }).lean()
     console.log(countSection.length)
 
     if ((countSection.length) >= 3) {
