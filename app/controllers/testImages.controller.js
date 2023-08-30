@@ -20,7 +20,7 @@ exports.create = async (req, res) => {
     });
 
     //Comprueba el numero de preguntas con esa sección
-    const imageCountSection = await TestImages.countDocuments({ section: test.section });
+    const imageCountSection = await TestImages.countDocuments({ section: test.section,isDeleted: false });
 
     if (imageCountSection >= 3) {
       console.log("Solo se permiten 3 imágenes")
@@ -60,7 +60,7 @@ exports.findAllPaginated = async (req, res) => {
 // Retrieve and return all testImages from the database.
 exports.findAll = async (req, res) => {
   try {
-    const testImages = await TestImages.find();
+    const testImages = await TestImages.find({isDeleted: false});
     const data = await shuffle(testImages)
     res.status(200).send({ message: "ok", data });
   } catch (error) {
@@ -72,7 +72,7 @@ exports.findAll = async (req, res) => {
 // Find a single testImages with a testImagesId
 exports.findOne = async (req, res) => {
   try {
-    const testImages = await TestImages.findById(req.params.id);
+    const testImages = await TestImages.findOne({_id:req.params.id,isDeleted: false});
     if (!testImages) {
       return res.status(400).send({ error: "TestImages not found" });
     }
@@ -88,7 +88,7 @@ exports.update = async (req, res) => {
   try {
     const { id } = req.params;
     const { data } = req.body;
-    const testImagesOld = await TestImages.findById(id);
+    const testImagesOld = await TestImages.findOne({_id:id,isDeleted: false});
 
     const testImages = JSON.parse(data);
     const test = {
