@@ -708,8 +708,7 @@ exports.getAllStudentsXTeacher = async (req, res) => {
 
     const casoIds = await Caso.find({ teacher: teacher._id, isDeleted: false })
       .select("_id")
-      .lean()
-      .exec();
+      .lean();
 
     if (casoIds.length === 0) {
       return res.status(200).send({ message: "No hay casos asignados" });
@@ -870,7 +869,7 @@ exports.getCaso = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const caso = await Caso.findOne({_id:id})
+    const caso = await Caso.findOne({_id:id, isDeleted: false})
       .populate({
         path: "student",
         select: "_id grade parallel",

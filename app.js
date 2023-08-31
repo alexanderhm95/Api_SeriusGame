@@ -11,7 +11,7 @@ const bodyParser = require('body-parser');
 //permite resolver errores de origen cruzado
 const cors = require('cors');
 //importa la conexión a la base de datos
-const  { dbConnection, dbConnection2 } = require('./config/mongo.conf');
+const  { dbConnection } = require('./config/mongo.conf');
 //permite manejar las rutas
 const path = require('path');
 //crea el servidor
@@ -37,11 +37,10 @@ morganBody(app, {
     noColors: true, // Desactiva los colores
     stream: loggerStream, // Establece el stream de salida
     skip: function (req, res) { // Permite omitir peticiones
-         return res.statusCode < 201 // Solo muestra peticiones con código de estado 400 o superior
+         return res.statusCode  // Solo muestra peticiones con código de estado 400 o superior
     }
 });
-//establecemos public como carpeta publica para el servidor
-//app.use('/api/1.0/public', express.static(path.resolve('public')));
+
 
 //definimos el puerto
 const port = process.env.PORT || 3001;

@@ -82,7 +82,7 @@ exports.findAll = async (req, res) => {
           preserveNullAndEmptyArrays: true
         }
       },
-      { $match: { dece: dece._id } },
+      { $match: { dece: dece._id, isDeleted: false } },
       {
         $project: {
           "personTeacherData": 1,
