@@ -746,7 +746,7 @@ exports.getAllStudentsXTeacher = async (req, res) => {
         )[0];
 
         const testTeacher = await TestTeacher.findOne({
-          caso: caso._id,
+          caso: caso._id, status:true
         }).exec();
 
         return {
