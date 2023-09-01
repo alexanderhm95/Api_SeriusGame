@@ -345,7 +345,7 @@ exports.testStudent = async (req, res) => {
         .send({ error: "Caso no encontrado o borrado previamente" });
     }
 
-    const testOld = await TestStudent.findOne({ caso: caso._id, idDeleted: false }).lean();
+    const testOld = await TestStudent.findOne({ caso: caso._id, idDeleted: false, status:true }).lean();
 
     if (testOld) {
       return res.status(400).send({ error: "El test ya ha sido ejecutado" });
@@ -460,7 +460,7 @@ exports.testTeacher = async (req, res) => {
 
 
 
-    const testOld = await TestQuestion.findOne({ caso: caso._id, idDeleted: false }).lean();
+    const testOld = await TestQuestion.findOne({ caso: caso._id, idDeleted: false, status:true }).lean();
 
     if (testOld) {
       return res.status(400).send({ error: "El test ya ha sido ejecutado" });
