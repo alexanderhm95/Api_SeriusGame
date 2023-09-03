@@ -364,11 +364,14 @@ exports.testStudent = async (req, res) => {
     if (percent < 84) {
       diagnostic = "El alumno no presenta indicadores.";
     } else if (percent >= 100) {
-      diagnostic = "El alumno presenta una probabilidad ALTA de haber sido víctima de violencia sexual.";
+      diagnostic =
+        "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
     } else if (percent >= 96 && percent < 100) {
-      diagnostic = "El alumno presenta una probabilidad MODERADA de haber sido víctima de violencia sexual.";
+      diagnostic =
+        "El alumno presenta un riesgo MODERADO de haber sido victima de violencia sexual";
     } else {
-      diagnostic = "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual.";
+      diagnostic =
+        "El alumno presenta un riesgo LEVE de haber sido victima de violencia sexual";
     }
 
 
