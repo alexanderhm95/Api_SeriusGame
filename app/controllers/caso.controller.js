@@ -345,7 +345,7 @@ exports.testStudent = async (req, res) => {
         .send({ error: "Caso no encontrado o borrado previamente" });
     }
 
-    const testOld = await TestStudent.findOne({ caso: caso._id, idDeleted: false, status:true }).lean();
+    const testOld = await TestStudent.findOne({ caso: caso._id, idDeleted: false, status: true }).lean();
 
     if (testOld) {
       return res.status(400).send({ error: "El test ya ha sido ejecutado" });
@@ -460,7 +460,7 @@ exports.testTeacher = async (req, res) => {
 
 
 
-    const testOld = await TestQuestion.findOne({ caso: caso._id, idDeleted: false, status:true }).lean();
+    const testOld = await TestQuestion.findOne({ caso: caso._id, idDeleted: false, status: true }).lean();
 
     if (testOld) {
       return res.status(400).send({ error: "El test ya ha sido ejecutado" });
@@ -495,7 +495,7 @@ exports.testTeacher = async (req, res) => {
       score: score,
       answers,
       diagnostic: diagnostic,
-      status:true
+      status: true
     }).save();
 
     await logsAudit(req, 'CREATE', 'TestTeacher', testTeacher, Object.keys(req.body), "Test Docente aplicado");
@@ -684,88 +684,111 @@ exports.getAllStudentsXTeacher = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const userTeacher = await User.findById(id).select("_id").lean().exec();
+    const user = await User.findById(id).lean();
 
-    if (!userTeacher) {
-      return res.status(404).send({ message: "Docente no encontrado" });
-    }
-
-    const teacher = await Teacher.findOne({ user: userTeacher._id })
-      .select("_id")
-      .populate({
-        path: "user",
-        populate: {
-          path: "person",
-          select: "-_id CI name lastName phone email ",
+    const casoIds = await Caso.aggregate([
+      {
+        $lookup: {
+          from: "teachers",
+          localField: "teacher",
+          foreignField: "_id",
+          as: "teacherData",
         },
-      })
-      .lean()
-      .exec();
+      },
+      {
+        $unwind: {
+          path: "$teacherData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "teacherData.user",
+          foreignField: "_id",
+          as: "userTeacherData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$userTeacherData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "student",
+          foreignField: "_id",
+          as: "studentData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$studentData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "people",
+          localField: "studentData.person",
+          foreignField: "_id",
+          as: "personStudentData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$personStudentData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "institutions",
+          localField: "personStudentData.institution",
+          foreignField: "_id",
+          as: "institutionStudentData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$institutionStudentData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $match: { "userTeacherData": user, isDeleted: false },
+      },
 
-    if (!teacher) {
-      return res.status(404).send({ message: "Docente no encontrado" });
-    }
-
-    const casoIds = await Caso.find({ teacher: teacher._id, isDeleted: false })
-      .select("_id")
-      .lean();
+    ]);
 
     if (casoIds.length === 0) {
       return res.status(200).send({ message: "No hay casos asignados" });
     }
 
-    const casoPromises = casoIds.map((caso) => {
-      return Caso.findById(caso._id)
-        .populate("student", "_id")
-        .populate("teacher", "_id")
-        .lean()
-        .exec();
+    const listCasoPromises = casoIds.map(async (caso) => {
+      const student = caso.studentData;
+      const personStudent = caso.personStudentData;
+      const testTeacher = await TestTeacher.findOne({
+        caso: caso._id, status: true
+      }).lean();
+
+      return {
+        id: caso._id || "no asignado",
+        idStudent: student ? student._id : "no asignado",
+        name: personStudent?.name || "no asignado",
+        lastName: personStudent?.lastName || "no asignado",
+        CI: personStudent.CI || "no asignado",
+        institution: caso?.institutionStudentData?.nameInstitution || "no asignado",
+        dateStart: caso.dateStart || "no asignado",
+        statusTestTeacher: testTeacher ? testTeacher.status : false,
+      };
     });
 
-    const casos = await Promise.all(casoPromises);
+    // Espera a que todas las promesas se resuelvan
+    const listCaso = await Promise.all(listCasoPromises);
 
-    const studentIds = casos.map((caso) => caso.student);
-
-    const students = await Student.find({ _id: { $in: studentIds } })
-      .select("_id")
-      .populate({
-        path: "person",
-        select: "-_id CI name lastName phone email institution gender",
-        populate: {
-          path: "institution",
-          select: "-_id nameInstitution",
-        },
-      })
-      .lean()
-      .exec();
-
-    const listCaso = await Promise.all(
-      casos.map(async (caso) => {
-        const student = students.filter(
-          (student) => String(student._id) === String(caso.student._id)
-        )[0];
-
-        const testTeacher = await TestTeacher.findOne({
-          caso: caso._id, status:true
-        }).exec();
-
-        return {
-          id: caso._id || "no asignado",
-          idStudent: student ? student._id : "no asignado",
-          name: student?.person?.name || "no asignado",
-          lastName: student?.person?.lastName || "no asignado",
-          gender: student?.person?.gender || "no asignado",
-          CI: student?.person?.CI || "no asignado",
-          nameT: teacher?.user?.person?.name || "no asignado",
-          lastNameT: teacher?.user?.person?.lastName || "no asignado",
-          CIteacher: teacher?.user?.person?.CI || "no asignado",
-          institution:
-            student?.person?.institution?.nameInstitution || "no asignado",
-          dateStart: caso.dateStart || "no asignado",
-          statusTestTeacher: testTeacher ? testTeacher.status : false,
-        };
-      })
-    );
     res.status(200).send({ message: "Datos  recuperados con éxito", data: listCaso });
   } catch (error) {
     console.log(error);
@@ -778,7 +801,7 @@ exports.getReporte = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const caso = await Caso.findOne({_id:id, isDeleted: false})
+    const caso = await Caso.findOne({ _id: id, isDeleted: false })
       .populate({
         path: "student",
         select: "grade parallel",
@@ -816,14 +839,14 @@ exports.getReporte = async (req, res) => {
         },
       })
       .lean();
-      console.log(caso)
+    console.log(caso)
     if (!caso) {
       return res.status(404).send({ error: "Caso no encontrado" });
     }
 
     const [testStudent, testTeacher] = await Promise.all([
-      TestStudent.findOne({ caso: caso._id, isDeleted:false }),
-      TestTeacher.findOne({ caso: caso._id, isDeleted:false }),
+      TestStudent.findOne({ caso: caso._id, isDeleted: false }),
+      TestTeacher.findOne({ caso: caso._id, isDeleted: false }),
     ]);
 
     const casoData = {
@@ -869,7 +892,7 @@ exports.getCaso = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const caso = await Caso.findOne({_id:id, isDeleted: false})
+    const caso = await Caso.findOne({ _id: id, isDeleted: false })
       .populate({
         path: "student",
         select: "_id grade parallel",
@@ -939,7 +962,6 @@ exports.getCaso = async (req, res) => {
       emailDece: caso.dece?.user?.person?.email || null,
 
     };
-    console.log(casoData)
     res.send({ message: "Caso encontrado", data: casoData });
   } catch (error) {
     console.log(error);
@@ -960,8 +982,8 @@ exports.delete = async (req, res) => {
     const student = await Student.findById(caso.student).session(session);
 
     //Comprueba si el estudiante tiene test ejecutados
-    const testTeacherPromise = await TestTeacher.findOne({ caso: caso._id, isDeleted:false }).session(session);
-    const testStudentPromise = await TestStudent.findOne({ caso: caso._id, isDeleted:false }).session(session);
+    const testTeacherPromise = await TestTeacher.findOne({ caso: caso._id, isDeleted: false }).session(session);
+    const testStudentPromise = await TestStudent.findOne({ caso: caso._id, isDeleted: false }).session(session);
 
     if (testTeacherPromise || testStudentPromise) {
       await session.abortTransaction();
