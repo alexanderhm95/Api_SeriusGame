@@ -18,6 +18,8 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
 
     const name = file.originalname.split("_");
+    console.log("nose ", name.slice(1).join('_'))
+
     cb(null, name.slice(1).join('_'));
   },
 });
