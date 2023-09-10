@@ -358,21 +358,17 @@ exports.testStudent = async (req, res) => {
       0
     );
 
-    const percent = calculateCsr(score);
     let diagnostic;
 
-    if (percent < 84) {
+    if (score < 4) {
       diagnostic = "El alumno no presenta indicadores.";
-    } else if (percent >= 100) {
+    } else if (score >= 5) {
       diagnostic =
         "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
-    } else if (percent >= 96 && percent < 100) {
+    } else if (score == 4) {
       diagnostic =
-        "El alumno presenta un riesgo MODERADO de haber sido victima de violencia sexual";
-    } else {
-      diagnostic =
-        "El alumno presenta un riesgo LEVE de haber sido victima de violencia sexual";
-    }
+        "El alumno presenta un riesgo ALTO de haber sido victima de violencia sexual";
+    } 
 
 
     const testStudent = await new TestStudent({
