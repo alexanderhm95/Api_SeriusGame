@@ -251,18 +251,17 @@ exports.scoreUpdate = async (req, res) => {
         .send({ error: "Error al cambiar la puntuación del test" });
     }
 
-    const percent = calculateCsr(testStudent.score);
     let diagnostic;
 
-    if (percent < 84) {
+    if (testStudent.score < 4) {
       diagnostic = "El alumno no presenta indicadores.";
-    } else if (percent >= 100) {
-      diagnostic = "El alumno presenta una probabilidad ALTA de haber sido víctima de violencia sexual.";
-    } else if (percent >= 96 && percent < 100) {
-      diagnostic = "El alumno presenta una probabilidad MODERADA de haber sido víctima de violencia sexual.";
-    } else {
-      diagnostic = "El alumno presenta un riesgo LEVE de haber sido víctima de violencia sexual.";
-    }
+    } else if (testStudent.score >= 5) {
+      diagnostic =
+        "El alumno presenta un riesgo GRAVE de haber sido víctima de violencia sexual";
+    } else if (testStudent.score == 4) {
+      diagnostic =
+        "El alumno presenta un riesgo ALTO de haber sido victima de violencia sexual";
+    } 
 
     testStudent.diagnostic = diagnostic;
     await testStudent.save();
