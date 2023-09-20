@@ -412,7 +412,8 @@ exports.generatePassStudent = async (req, res) => {
 exports.loginStudent = async (req, res) => {
   console.log(req.body);
   try {
-    const { passwordTemporaly } = req.body;
+    const { passwordTemporaly, deviceName } = req.body;
+    console.log(deviceName)
 
     const student = await Student.findOne({
       passwordTemporaly: passwordTemporaly,
