@@ -202,7 +202,7 @@ const generarContenidoInforme = async (casoData) => {
         ...casoData.respuestas.map((respuesta, index) => [
           { text: `Pregunta ${index + 1}`, style: "value" },
           respuesta.refImages.split("/").pop() ?? "",
-          respuesta.value ?? "",
+          respuesta.valueAnswer ? respuesta.valueAnswer: 0,
         ]),
       ],
       alignment: "center", // Alineación centrada de la tabla
