@@ -10,7 +10,7 @@ const obtenerDatosInforme = async (id) => {
       select: "grade parallel age",
       populate: {
         path: "person",
-        select: "name lastName CI email",
+        select: "name lastName CI",
         populate: {
           path: "institution",
           select: "nameInstitution",
@@ -43,7 +43,7 @@ const obtenerDatosInforme = async (id) => {
       },
     })
     .lean();
-  console.log(caso)
+  console.log("HOlas"+caso.student)
   if (!caso) {
     throw new Error("Caso no encontrado");
   }
