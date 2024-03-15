@@ -7,10 +7,10 @@ const obtenerDatosInforme = async (id) => {
   const caso = await Case.findById(id)
     .populate({
       path: "student",
-      select: "grade parallel age",
+      select: "grade parallel ",
       populate: {
         path: "person",
-        select: "name lastName CI",
+        select: "name lastName CI age",
         populate: {
           path: "institution",
           select: "nameInstitution",
@@ -43,7 +43,7 @@ const obtenerDatosInforme = async (id) => {
       },
     })
     .lean();
-  console.log("HOlas "+caso.student.age)
+
   if (!caso) {
     throw new Error("Caso no encontrado");
   }
@@ -57,7 +57,7 @@ const obtenerDatosInforme = async (id) => {
     ciStudent: caso.student?.person?.CI || "no asignado",
     nameStudent: caso.student?.person?.name || "no asignado",
     lastNameStudent: caso.student?.person?.lastName || "no asignado",
-    age: caso.student?.age || "no asignado",
+    age: caso.student?.person?.age || "no asignado",
     nameInstitutionStudent:
       caso.student?.person?.institution?.nameInstitution || "no asignado",
     grade: caso.student?.grade || "no asignado",
