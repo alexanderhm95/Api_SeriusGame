@@ -74,7 +74,7 @@ const obtenerDatosInforme = async (id) => {
   };
 };
 
-// Función para generar el contenido del informe con los datos obtenidos
+// Función para generar el contenido del informe con los datos obtenidos.....
 const generarContenidoInforme = async (casoData) => {
   const content = [];
 
