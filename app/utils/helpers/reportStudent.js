@@ -16,6 +16,7 @@ const obtenerDatosInforme = async (id) => {
           select: "nameInstitution",
         },
       },
+      
     })
     .populate({
       path: "dece",
@@ -42,7 +43,7 @@ const obtenerDatosInforme = async (id) => {
       },
     })
     .lean();
-
+  console.log(caso)
   if (!caso) {
     throw new Error("Caso no encontrado");
   }
