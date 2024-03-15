@@ -43,7 +43,7 @@ const obtenerDatosInforme = async (id) => {
       },
     })
     .lean();
-  console.log("HOlas "+caso.student.age)
+  console.log("HOlas "+caso.student)
   if (!caso) {
     throw new Error("Caso no encontrado");
   }
