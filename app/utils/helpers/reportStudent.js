@@ -188,6 +188,7 @@ const generarContenidoInforme = async (casoData) => {
   );
 
   // Tabla: Respuestas
+  console.log(casoData)
   const respuestasTable = {
     style: "table",
     table: {
