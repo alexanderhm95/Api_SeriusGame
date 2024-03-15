@@ -1,5 +1,5 @@
- config/ Esta carperta contendra todos los archivos de configuracion 
-utils/  Tendra los helpers, funciones que permitiran agilizar los procesos 
+ config/ Esta carperta contendra todos los archivos de configuracion. 
+utils/  Tendra los helpers, funciones que permitiran agilizar los procesos. 
 public/ Contiene los archivos públicos de la aplicación, como imágenes, CSS o JavaScript.
 
 
