@@ -312,6 +312,7 @@ exports.testStudent = async (req, res) => {
   console.log(req.body);
   try {
     const { CIstudent, answers } = req.body;
+    console.log(answers)
 
     const caso = await Caso.aggregate([
       {
