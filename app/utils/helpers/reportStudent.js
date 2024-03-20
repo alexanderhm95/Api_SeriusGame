@@ -71,8 +71,7 @@ const obtenerDatosInforme = async (id) => {
     scoreEvaluator: testStudent?.scoreEvaluator || null,
     diagnosticTeacher: testTeacher?.diagnostic || "no asignado",
     scoreTeacher: testTeacher?.score || null,
-    respuestasImg: testStudent.answers.refImages || null,
-    respuestasVal: testStudent.answers.valueAnswer || null,
+    respuestas: testStudent.answers || null,
   };
 };
 
@@ -192,6 +191,7 @@ const generarContenidoInforme = async (casoData) => {
   );
 
   // Tabla: Respuestas
+  console.log(casoData)
   const respuestasTable = {
     style: "table",
     table: {
@@ -205,8 +205,8 @@ const generarContenidoInforme = async (casoData) => {
         ],
         ...casoData.respuestas.map((respuesta, index) => [
           { text: `Pregunta ${index + 1}`, style: "value" },
-          {text: respuestasImg[index].split("/").pop() , style:"text"},
-          {text: respuestasVal[index], style:"value"},
+          {text: respuesta.refImages.split("/").pop() , style:"text"},
+          {text: respuesta.valueAnswer, style:"value"},
         ]),
       ],
       alignment: "center", // Alineación centrada de la tabla
