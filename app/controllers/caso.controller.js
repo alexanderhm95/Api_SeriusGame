@@ -309,10 +309,8 @@ exports.update = async (req, res) => {
 
 
 exports.testStudent = async (req, res) => {
-  console.log(req.body);
   try {
     const { CIstudent, answers } = req.body;
-    console.log(answers)
 
     const caso = await Caso.aggregate([
       {
@@ -797,7 +795,6 @@ exports.getAllStudentsXTeacher = async (req, res) => {
 };
 
 exports.getReporte = async (req, res) => {
-  console.log("llegue al reporte")
   const { id } = req.params;
 
   try {
@@ -839,7 +836,6 @@ exports.getReporte = async (req, res) => {
         },
       })
       .lean();
-    console.log(caso)
     if (!caso) {
       return res.status(404).send({ error: "Caso no encontrado" });
     }
