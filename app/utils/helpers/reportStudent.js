@@ -195,7 +195,7 @@ const generarContenidoInforme = async (casoData) => {
   const respuestasTable = {
     style: "table",
     table: {
-      widths: ["auto", "auto", "auto"],
+      widths: ["auto", "auto"],
       headerRows: 1,
       body: [
         [
