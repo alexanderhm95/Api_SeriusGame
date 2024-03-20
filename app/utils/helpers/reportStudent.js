@@ -71,13 +71,14 @@ const obtenerDatosInforme = async (id) => {
     scoreEvaluator: testStudent?.scoreEvaluator || null,
     diagnosticTeacher: testTeacher?.diagnostic || "no asignado",
     scoreTeacher: testTeacher?.score || null,
-    respuestas: testStudent.answers || null,
+    respuestas: testStudent?.answers || null,
   };
   
-  console.log("Buscando valores", testStudent.respuestas)
+  console.log("Buscando valores"+testStudent.respuestas)
 };
 // Función para generar el contenido del informe con los datos obtenidos.....
 const generarContenidoInforme = async (casoData) => {
+  console.log("Lo que llega ", casoData)
   const content = [];
 
   // Título: Nombre de la Institución
