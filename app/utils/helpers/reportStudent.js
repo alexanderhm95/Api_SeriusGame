@@ -49,7 +49,7 @@ const obtenerDatosInforme = async (id) => {
   }
 
   const [testStudent, testTeacher] = await Promise.all([
-    TestStudent.findOne({ caso: caso._id }),
+    TestStudent.findOne({ caso: caso._id, isDeleted:false  }),
     TestTeacher.findOne({ caso: caso._id }),
   ]);
 
