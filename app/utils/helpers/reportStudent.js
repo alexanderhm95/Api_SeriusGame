@@ -186,7 +186,7 @@ const generarContenidoInforme = async (casoData) => {
       style: "value",
     },
     {
-      casoData.respuestas
+      casoData
     }
   );
 
