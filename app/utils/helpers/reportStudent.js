@@ -43,7 +43,7 @@ const obtenerDatosInforme = async (id) => {
       },
     })
     .lean();
-  console.log("Buscando valores", testStudent.respuestas)
+  
   if (!caso) {
     throw new Error("Caso no encontrado");
   }
@@ -73,6 +73,8 @@ const obtenerDatosInforme = async (id) => {
     scoreTeacher: testTeacher?.score || null,
     respuestas: testStudent.answers || null,
   };
+  
+  console.log("Buscando valores", testStudent.respuestas)
 };
 // Función para generar el contenido del informe con los datos obtenidos.....
 const generarContenidoInforme = async (casoData) => {
