@@ -74,7 +74,7 @@ const obtenerDatosInforme = async (id) => {
     respuestas: testStudent?.answers || null,
   };
   
-  console.log("Buscando valores"+testStudent.respuestas)
+  console.log("Buscando valores"+testStudent.respuestas.valueAnswer)
 };
 // Función para generar el contenido del informe con los datos obtenidos.....
 const generarContenidoInforme = async (casoData) => {
