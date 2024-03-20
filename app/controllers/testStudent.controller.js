@@ -162,7 +162,7 @@ exports.deleteOne = async (req, res) => {
 exports.getTestStudentReport = async (req, res) => {
   try {
     // Obtener los datos necesarios para el informe desde tu base de datos
-    const casoData = await obtenerDatosInforme(req.params.id);
+    const casoData = await obtenerDatosInforme(req.params.id, isDeleted:false );
     
     // Generar el contenido del informe
     const docDefinition = await generarContenidoInforme(casoData);
