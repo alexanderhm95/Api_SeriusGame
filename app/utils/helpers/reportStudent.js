@@ -191,7 +191,6 @@ const generarContenidoInforme = async (casoData) => {
   );
 
   // Tabla: Respuestas
-  console.log(casoData)
   const respuestasTable = {
     style: "table",
     table: {
@@ -205,8 +204,8 @@ const generarContenidoInforme = async (casoData) => {
         ],
         ...casoData.respuestas.map((respuesta, index) => [
           { text: `Pregunta ${index + 1}`, style: "value" },
-          respuesta.refImages.split("/").pop() ?? "",
-          respuesta.valueAnswer ? respuesta.valueAnswer: 0,
+          {text: respuesta.refImages.split("/").pop() , style:"text"},
+          {text: respuesta.valueAnswer ? respuesta.valueAnswer: 0, style:"value"},
         ]),
       ],
       alignment: "center", // Alineación centrada de la tabla
