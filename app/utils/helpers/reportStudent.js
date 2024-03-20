@@ -197,18 +197,18 @@ const generarContenidoInforme = async (casoData) => {
   const respuestasTable = {
     style: "table",
     table: {
-      widths: ["auto", "auto"],
+      widths: ["auto", "auto", "auto"],
       headerRows: 1,
       body: [
         [
           { text: "Pregunta", style: "tableHeader" },
           { text: "Nombre", style: "tableHeader" },
-          //{ text: "Valor", style: "tableHeader" },
+          { text: "Valor", style: "tableHeader" },
         ],
         ...casoData.respuestas.map((respuesta, index) => [
           { text: `Pregunta ${index + 1}`, style: "value" },
           {text: respuesta.refImages.split("/").pop() , style:"text"},
-          //{text: respuesta.valueAnswer, style:"value"},
+          {text: respuesta.valueAnswer, style:"value"},
         ]),
       ],
       alignment: "center", // Alineación centrada de la tabla
