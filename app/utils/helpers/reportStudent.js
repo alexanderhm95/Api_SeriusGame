@@ -184,6 +184,9 @@ const generarContenidoInforme = async (casoData) => {
           ? ""
           : "Punto agregado durante el análisis",
       style: "value",
+    },
+    {
+      casoData.respuestas
     }
   );
 
