@@ -10,7 +10,7 @@ direccion:      string
 telefono:       string
 correo:         string
 CI:             string
-
+listos
 
 
 
